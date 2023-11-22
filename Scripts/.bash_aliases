@@ -381,6 +381,88 @@ function __show_process_list() { # Show Filter Process list
     fi
 }
 
+function __install_mgen_script() { # install mgenScript files & extensions
+    if [[ ! -d "${SCRIPT_BASE_DIR}/Scripts" ]]; then
+        echo -e "${ERR} Install failed => \"${cSKY}${SCRIPT_BASE_DIR}${cRST}\" directory not exists"
+        return 1
+    fi
+
+    local _updated_file="${SCRIPT_BASE_DIR}/Scripts/.bash_aliases"
+    local _check_recent="$(__get_more_recent_edit_file "${SCRIPT_ABS_PATH}" "${_updated_file}")"
+
+    # CHECK :: .bash_aliases
+    if [[ "${_check_recent}" == "${_updated_file}" ]]; then
+        echo -e "${RUN} Install : ${SCRIPT_ABS_PATH}"
+        sudo cp -a "${_updated_file}" "${HOME}"
+    fi
+
+    local _fzf_install_path="/usr/bin"
+    local _fzf_mg_file_path="${SCRIPT_BASE_DIR}/Extensions"
+
+    # CHECK :: fzf_mgen
+    if [[ -d "${_fzf_mg_file_path}" ]]; then
+        if [[ -e "${_fzf_mg_file_path}/fzf_mgen" && ! -e "${_fzf_install_path}/fzf_mgen" ]]; then
+            echo -e "${RUN} Install : fzf_mgen"
+            sudo cp -a "${_fzf_mg_file_path}/fzf_mgen" "${_fzf_install_path}"
+        fi
+    fi
+    # Update
+    source ~/.bashrc
+}
+
+function __upload_script_to_git() { # upload git
+    local _cur_dir=$(pwd)
+
+    if __check_git_remote_url_reachable; then
+        # Check directory
+        if [[ ! -d "${SCRIPT_BASE_DIR}" ]]; then
+            echo -e "${ERR} Upload failed => \"${cSKY}${SCRIPT_BASE_DIR}${cRST}\" directory not exists"
+            return 1
+        fi
+
+        local _ssh_key_file="${SCRIPT_BASE_DIR}/.git_ssh_key"
+        # Check ssh gen token
+        if [[ ! -e "${_ssh_key_file}" ]]; then
+            echo -e "${ERR} Git Access Token not exist..."
+            return 1
+        fi
+
+        cd ${SCRIPT_BASE_DIR}
+        local _token="$(cat ${_ssh_key_file})"
+        local _remote_url=$(git remote get-url origin)
+
+        __password_check && echo ${USER_PW} | sudo -S true
+
+        # 토큰을 사용하는지 확인
+        if [[ "$_remote_url" == *"github.com"* && "$_remote_url" != *"https://"* ]]; then
+            echo -e "${SET} Remote URL already contains a token."
+        else
+            # GitHub 사용자 이름과 액세스 토큰
+            local _github_username="so686so"
+            local _github_token="${_token}"
+
+            # 새로운 토큰을 추가한 URL로 변경
+            local _new_remote_url=$(echo "$_remote_url" | sed "s/https:\/\/github.com/https:\/\/$_github_username:$_github_token@github.com/")
+
+            # 변경된 URL을 Git에 적용
+            sudo git remote set-url origin $_new_remote_url
+
+            echo -e "${SET} Remote URL updated with the token."
+        fi
+
+        echo -en "${SET} Commit Message : "
+        read _commit_message
+
+        sudo git commit -am "${_commit_message}"
+        sudo git push
+
+        sudo git log
+        echo -e "${FIN} Upload done"
+    else
+        echo -e "${ERR} Git unreachable..."
+    fi
+}
+
 # ================================================================= #
 # Script Aliases Functions ( 'MGEN_func()' name formatting )
 # ================================================================= #
@@ -757,49 +839,26 @@ function MGEN_uni_check_program_memory() { # [mem] Check memory usage
 function MGEN_update_script() { # [update] Update MgenScript
 
     echo -e "${RUN} MgenScript Update Start..."
-
-    if [[ ! -d "${SCRIPT_BASE_DIR}" ]]; then
-        echo -e "${ERR} Update failed => \"${cSKY}${SCRIPT_BASE_DIR}${cRST}\" directory not exists"
-        return
-    fi
-
     # remember current dirs
     local _cur_dir=$(pwd)
 
-    # Git pull 'MgenScript'
+    # Download from github
     if __check_git_remote_url_reachable; then
+        # Check directory
+        if [[ ! -d "${SCRIPT_BASE_DIR}" ]]; then
+            echo -e "${ERR} Update failed => \"${cSKY}${SCRIPT_BASE_DIR}${cRST}\" directory not exists"
+            return
+        fi
+        # git pull 'MgenScript'
         echo -e "${TRY} Download MgenScript update files..."
         cd ${SCRIPT_BASE_DIR}
         sudo git pull > /dev/null
     fi
 
-    local _updated_file="${SCRIPT_BASE_DIR}/Scripts/.bash_aliases"
-    local _check_recent="$(__get_more_recent_edit_file "${SCRIPT_ABS_PATH}" "${_updated_file}")"
-
-    if [[ ! -d "${SCRIPT_BASE_DIR}/Scripts" ]]; then
-        echo -e "${ERR} Update failed => \"${cSKY}${SCRIPT_BASE_DIR}${cRST}\" directory not exists"
-        return
+    if __install_mgen_script; then
+        echo -e "${FIN} Update Done"
     fi
 
-    # CHECK :: .bash_aliases
-    if [[ "${_check_recent}" == "${_updated_file}" ]]; then
-        echo -e "${RUN} Update  : ${SCRIPT_ABS_PATH}"
-        sudo cp -a "${_updated_file}" "${HOME}"
-    fi
-
-    local _fzf_install_path="/usr/bin"
-    local _fzf_mg_file_path="${SCRIPT_BASE_DIR}/Extensions"
-
-    # CHECK :: fzf_mgen
-    if [[ -d "${_fzf_mg_file_path}" ]]; then
-        if [[ -e "${_fzf_mg_file_path}/fzf_mgen" && ! -e "${_fzf_install_path}/fzf_mgen" ]]; then
-            echo -e "${RUN} Install : fzf_mgen"
-            sudo cp -a "${_fzf_mg_file_path}/fzf_mgen" "${_fzf_install_path}"
-        fi
-    fi
-
-    source ~/.bashrc
-    echo -e "${FIN} Update Done"
     cd ${_cur_dir}
 }
 
