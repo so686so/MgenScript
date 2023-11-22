@@ -24,7 +24,7 @@ if [[ -e "${update_target_fzf_file}" ]]; then
 fi
 
 cd ${HOME}
-mv ${script_dir_path} ${HOME}/.MgenScript
+mv ${script_dir_path} ${HOME}/.MgenScript 2>/dev/null
 
 echo -e "=============================="
 echo -e "[DONE] Install MgenScript Done"
