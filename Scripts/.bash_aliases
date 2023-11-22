@@ -455,8 +455,7 @@ function __upload_script_to_git() { # upload git
 
         sudo git commit -am "${_commit_message}"
         sudo git push
-
-        sudo git log
+        
         echo -e "${FIN} Upload done"
     else
         echo -e "${ERR} Git unreachable..."
