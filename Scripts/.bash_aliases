@@ -390,6 +390,7 @@ function __install_mgen_script() { # install mgenScript files & extensions
         return 1
     fi
 
+    local _password=${USER_PW}
     local _updated_file="${SCRIPT_BASE_DIR}/Scripts/.bash_aliases"
     local _check_recent="$(__get_more_recent_edit_file "${SCRIPT_ABS_PATH}" "${_updated_file}")"
 
@@ -410,6 +411,7 @@ function __install_mgen_script() { # install mgenScript files & extensions
         fi
     fi
     # Update
+    __set_option USER_PW "${_password}"
     source ~/.bashrc
 }
 
