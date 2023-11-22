@@ -18,7 +18,7 @@ GitAddress="https://github.com/so686so/MgenScript.git"              #
 # Global Define : ACCOUNT
 # ================================================================= #
 USER_ID=$(whoami)
-USER_PW=unibase0910
+USER_PW=
 # ================================================================= #
 
 
