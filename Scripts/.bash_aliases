@@ -38,6 +38,9 @@ PROCESS_SEARCH_LIST=("mono" "UVES" "RAID" "glances" "nvtop" "PID"\
 PROCESS_IGRNOE_LIST=("grep" "vi" "vscode" "${SCRIPT_FILENAME}")
 # ----------------------------------------------------------------- #
 DRAW_LINE_MAX_LEN=100
+# ----------------------------------------------------------------- #
+FZF_SETTINGS="--height 50% --reverse --cycle \
+              --bind=ctrl-space:preview-page-down"
 # ================================================================= #
 
 
@@ -861,19 +864,43 @@ function MGEN_update_script() { # [update] Update MgenScript
     cd ${_cur_dir}
 }
 
-function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
-    local _cur_dir=$(pwd)
+function MGEN_cd_using_fzf() { # [cd] cd command with fuzzing find
 
+    if [[ ! -e "/usr/bin/fzf_mgen" ]]; then
+        echo -e "${ERR} you use 'mgen cd' but 'fzf_mgen' not exists"
+        return 1
+    fi
+
+    local _pre_dir=$(pwd)
+    if [[ "$1" == "HOME" ]]; then
+        cd ${HOME}
+    fi
+
+    echo -e "${SET} Search Start Point : ${cSKY}$(pwd)${cRST}"
+
+    local _select_file=$( fzf_mgen ${FZF_SETTINGS} \
+                          --preview 'if file -b {} | grep -q text; then cat {}; else echo "Not a text file"; fi' \
+                          --header "[ Preview Scroll Down : ctrl + space ]" )
+
+    if [[ -n "${_select_file}" ]]; then
+        cd $(dirname ${_select_file})
+    else
+        cd ${_pre_dir}
+    fi
+}
+
+function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
     # Check passwd & set sudo permission
     __password_check && echo ${USER_PW} | sudo -S true
 
+    # Run Tool
     if   [[ $# -eq 0 ]]; then
         MGEN_show_script_summary
     elif [[ $# -gt 0 ]]; then
         case $1 in
 
             .|status)
-                MGEN_show_current_status
+                MGEN_show_current_status | more
                 ;;
 
             kill)
@@ -886,7 +913,7 @@ function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
                 elif [[ "$2" == "ssh" ]]; then
                     MGEN_run_ssh_target_container
                 else
-                    MGEN_show_script_summary
+                    MGEN_show_script_summary | more
                 fi
                 ;;
 
@@ -909,9 +936,15 @@ function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
             update)
                 MGEN_update_script
                 ;;
+
+            cd)
+                if [[ "$2" == "." ]]
+                then MGEN_cd_using_fzf "CURRENT_DIR"
+                else MGEN_cd_using_fzf "HOME"
+                fi
+                ;;
         esac
     fi
-    cd ${_cur_dir}
 }
 alias mgen='MGEN_SCRIPT_TOOL'
 alias mg='MGEN_SCRIPT_TOOL'
