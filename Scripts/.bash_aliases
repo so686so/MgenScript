@@ -12,7 +12,7 @@
 # ================================================================= #
 GitAddress="https://github.com/so686so/MgenScript.git"              #
 # ================================================================= #
-.
+
 
 # ================================================================= #
 # Global Define : ACCOUNT
@@ -125,6 +125,14 @@ function __is_run_target_process() { # Check target process is running
     then echo -e "True"
     else echo -e "False"
     fi
+}
+
+function __check_installed_package() { # check target package installed
+	$1 --version &>/dev/null
+}
+
+function __check_git_remote_url_reachable() { # Returns 0 if $1 is a reachable git remote url
+    __check_installed_package "git" && git ls-remote "$GitAddress" CHECK_GIT_REMOTE_URL_REACHABILITY >/dev/null 2>&1
 }
 
 function __password_check() { # When initialize script & run command, check password is valid and save
@@ -321,25 +329,22 @@ function __get_current_selected_container() { # Get current select docker contia
     echo -e "${_target}"
 }
 
-function __compare_files_edit_newer() { # Function to determine which of two files was most recently modified
-    local _file_1="$1"
-    local _file_2="$2"
+function __get_more_recent_edit_file() { # determine which of two files was most recently modified
+    local _file_1=$1
+    local _file_2=$2
 
-    if [ -e "$file1" ] && [ -e "$file2" ]; then
+    if [[ -e "$_file_1" && -e "$_file_2" ]]; then
         # Get the modification time in seconds since the epoch for each file
-        mod_time_file1=$(stat -c %Y "$file1")
-        mod_time_file2=$(stat -c %Y "$file2")
+        local _time_1=$(stat -c %Y "$_file_1")
+        local time_2=$(stat -c %Y "$_file_2")
 
         # Compare modification times
-        if [ "$mod_time_file1" -gt "$mod_time_file2" ]; then
-            echo "$file1 is more recent than $file2."
-        elif [ "$mod_time_file1" -lt "$mod_time_file2" ]; then
-            echo "$file2 is more recent than $file1."
-        else
-            echo "Both files have the same modification time."
+        if   [[ "$_time_1" -gt "$time_2" ]]; then echo "$_file_1"
+        elif [[ "$_time_1" -lt "$time_2" ]]; then echo "$_file_2"
+        else echo "$_file_1"
         fi
     else
-        echo "One or both files do not exist."
+        echo "FILE_NONE"
     fi
 }
 
@@ -749,9 +754,59 @@ function MGEN_uni_check_program_memory() { # [mem] Check memory usage
     done
 }
 
+function MGEN_update_script() { # [update] Update MgenScript
+
+    echo -e "${RUN} MgenScript Update Start..."
+
+    if [[ ! -d "${SCRIPT_BASE_DIR}" ]]; then
+        echo -e "${ERR} Update failed => \"${cSKY}${SCRIPT_BASE_DIR}${cRST}\" directory not exists"
+        return
+    fi
+
+    # remember current dirs
+    local _cur_dir=$(pwd)
+
+    # Git pull 'MgenScript'
+    if __check_git_remote_url_reachable; then
+        echo -e "${TRY} Download MgenScript update files..."
+        cd ${SCRIPT_BASE_DIR}
+        sudo git pull > /dev/null
+    fi
+
+    local _updated_file="${SCRIPT_BASE_DIR}/Scripts/.bash_aliases"
+    local _check_recent="$(__get_more_recent_edit_file "${SCRIPT_ABS_PATH}" "${_updated_file}")"
+
+    if [[ ! -d "${SCRIPT_BASE_DIR}/Scripts" ]]; then
+        echo -e "${ERR} Update failed => \"${cSKY}${SCRIPT_BASE_DIR}${cRST}\" directory not exists"
+        return
+    fi
+
+    # CHECK :: .bash_aliases
+    if [[ "${_check_recent}" == "${_updated_file}" ]]; then
+        echo -e "${RUN} Update  : ${SCRIPT_ABS_PATH}"
+        sudo cp -a "${_updated_file}" "${HOME}"
+    fi
+
+    local _fzf_install_path="/usr/bin"
+    local _fzf_mg_file_path="${SCRIPT_BASE_DIR}/Extensions"
+
+    # CHECK :: fzf_mgen
+    if [[ -d "${_fzf_mg_file_path}" ]]; then
+        if [[ -e "${_fzf_mg_file_path}/fzf_mgen" && ! -e "${_fzf_install_path}/fzf_mgen" ]]; then
+            echo -e "${RUN} Install : fzf_mgen"
+            sudo cp -a "${_fzf_mg_file_path}/fzf_mgen" "${_fzf_install_path}"
+        fi
+    fi
+
+    source ~/.bashrc
+    echo -e "${FIN} Update Done"
+    cd ${_cur_dir}
+}
+
 function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
     local _cur_dir=$(pwd)
 
+    # Check passwd & set sudo permission
     __password_check && echo ${USER_PW} | sudo -S true
 
     if   [[ $# -eq 0 ]]; then
@@ -791,6 +846,10 @@ function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
 
             ssh)
                 MGEN_run_ssh_target_container
+                ;;
+
+            update)
+                MGEN_update_script
                 ;;
         esac
     fi
