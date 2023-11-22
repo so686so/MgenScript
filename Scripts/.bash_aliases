@@ -25,7 +25,7 @@ USER_PW=unibase0910
 # ================================================================= #
 # Global Define : ENVIRONMENT
 # ================================================================= #
-SCRIPT_BASE_DIR="${HOME}/.MgenScript"
+SCRIPT_BASE_DIR="${HOME}/MgenScript"
 # ----------------------------------------------------------------- #
 SCRIPT_ABS_PATH="${HOME}/.bash_aliases"
 SCRIPT_FILENAME=$(basename "${SCRIPT_ABS_PATH}")
@@ -455,7 +455,7 @@ function __upload_script_to_git() { # upload git
 
         sudo git commit -am "${_commit_message}"
         sudo git push
-        
+
         echo -e "${FIN} Upload done"
     else
         echo -e "${ERR} Git unreachable..."
