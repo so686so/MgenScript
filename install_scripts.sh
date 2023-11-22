@@ -2,12 +2,11 @@
 # =====================================================================================================================
 
 # Check sudo
-if [ $EUID -ne 0 ]; then
+if [[ $EUID -ne 0 ]]; then
     echo -e "[ERR] Please run this script with 'sudo'"
     exit
 fi
 
-curr_dir_path=$(pwd)
 script_path=$(readlink -f "$0")
 script_dir_path=$(dirname "${script_path}")
 
@@ -23,10 +22,9 @@ if [[ -e "${update_target_fzf_file}" ]]; then
     cp -a "${update_target_fzf_file}" /usr/bin
 fi
 
-cd ${HOME}
-mv ${script_dir_path} ${HOME}/.MgenScript 2>/dev/null
-
 echo -e "=============================="
 echo -e "[DONE] Install MgenScript Done"
 echo -e "=============================="
-cd ${curr_dir_path}
+
+cd ${HOME}
+mv ${script_dir_path} ${HOME}/.MgenScript 2>/dev/null
