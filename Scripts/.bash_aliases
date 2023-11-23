@@ -47,10 +47,13 @@ FZF_SETTINGS="--height 50% --reverse --cycle \
 # ================================================================= #
 # Global Define : COLORS
 # ================================================================= #
-cBLK='\e[30m'; cRED='\e[31m'; cGRN='\e[32m'
-cYLW='\e[33m'; cBLU='\e[34m'; cSKY='\e[36m'
-cWHT='\e[37m'; bWHT='\e[47m'; cRST='\e[00m'
-cBLD='\e[01m'; cDIM='\e[02m'; cLNE='\e[04m'
+cBLK='\033[30m'; cRED='\033[31m'; cGRN='\033[32m'
+cYLW='\033[33m'; cBLU='\033[34m'; cSKY='\033[36m'
+cWHT='\033[37m'; bWHT='\033[47m'; cRST='\033[00m'
+cBLD='\033[01m'; cDIM='\033[02m'; cLNE='\033[04m'
+cGRY='\033[90m'; cMGT='\033[35m'; 
+cB_W='\033[97m'; cB_R='\033[91m'; cB_B='\033[94m'
+cB_Y='\033[93m';
 # ================================================================= #
 
 
@@ -253,7 +256,7 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
         done
 
         __draw_line -
-        printf "$ESC[2K * Use ${cYLW}Arrow key${cRST} to select and input '${cSKY}Enter${cRST}' to select, Cancel '${cRED}Ctrl+C${cRST}'\n";
+        printf "$ESC[2K * Use ${cB_Y}Arrow key${cRST} to select and input '${cB_B}Enter${cRST}' to select, Cancel '${cB_R}Ctrl+C${cRST}'\n";
         __draw_line =
 
         # Wait Key Input
@@ -372,15 +375,39 @@ function __show_process_list() { # Show Filter Process list
     local _output=$(ps au | grep ${_search_words} | grep ${_ignore_words})
 
     # Print Title
-    echo -e "${_output}" | awk 'NR < 2 {printf"   %-14s %-5s  %-5s  ", $2, $3, $4; for (i=11; i<=NF; i++) printf "%s ", $i; printf "\n"}'
+    echo -en "${cB_B}"
+    echo -e "${_output}" | awk 'NR < 2 {printf"   %-14s %-8s %-8s ", $2, $3, $4; for (i=11; i<=NF; i++) printf "%s ", $i; printf "\n"}'
+    echo -en "${cRST}"
 
     # Print Details
     if expr "$_cpu_core" + 0 > /dev/null; then
         echo -e "${_output}" | \
-        awk -v SPLIT="$_cpu_core" 'NR > 1 {printf"   %-14s %05.2f  %05.2f  ", $2, $3 / SPLIT, $4; for (i=11; i<=NF; i++) printf "%s ", $i; printf "\n"}'
+        awk -v SPLIT="$_cpu_core" 'NR > 1 {printf"   %-14s %-8.2f %-8.2f ", $2, $3 / SPLIT, $4; for (i=11; i<=NF; i++) printf "%s ", $i; printf "\n"}'
     else
         echo -e "${_output}" | \
-        awk 'NR > 1 {printf"   %-14s %05.2f  %05.2f  ", $2, $3, $4; for (i=11; i<=NF; i++) printf "%s ", $i; printf "\n"}'
+        awk 'NR > 1 {printf"   %-14s %-8.2f %-8.2f ", $2, $3, $4; for (i=11; i<=NF; i++) printf "%s ", $i; printf "\n"}'
+    fi
+}
+
+function __show_co_logo_colorful() { # show 'MGEN_Solutions' logo colorful
+    local _grn_1='\033[38;5;82m'
+    local _sky_1='\033[38;5;75m'
+    local _blu_1='\033[38;5;69m'
+    local _pup_1='\033[38;5;189m'
+    local _reset='\033[0m'
+    
+    echo -e
+    echo -e " ${_grn_1}╔╦${_sky_1}╗╔${_blu_1}═╗╔═╗╔╗╔  ╔═╗┌─┐┬  ┬ ┬┌┬┐┬┌─┐┌┐┌┌─┐${_pup_1}  (주)엠젠솔루션 ${_reset}"
+    echo -e " ${_grn_1}║║${_sky_1}║║${_blu_1} ╦║╣ ║║║  ╚═╗│ ││  │ │ │ ││ ││││└─┐${_pup_1}   AI BigData Research Institute ${_reset}"
+    echo -e " ${_grn_1}╩ ${_sky_1}╩╚${_blu_1}═╝╚═╝╝╚╝──╚═╝└─┘┴─┘└─┘ ┴ ┴└─┘┘└┘└─┘${_pup_1}   www.mgensolutions.kr ${_reset}"
+    echo -e
+}
+
+function __simplify_shell_login() { # hide shell login (motd)
+    __password_check && echo ${USER_PW} | sudo -S true
+    if [[ -d /etc/update-motd.d ]]; then
+        sudo chmod -x /etc/update-motd.d/*
+        __show_co_logo_colorful | sudo tee /etc/motd
     fi
 }
 
@@ -412,6 +439,7 @@ function __install_mgen_script() { # install mgenScript files & extensions
     fi
     # Update
     __set_option USER_PW "${_password}"
+    __simplify_shell_login
     source ~/.bashrc
 }
 
@@ -480,7 +508,7 @@ function MGEN_show_script_summary() { # Show Total Script Aliases
                       awk  -F "#" '{printf("%s\\n", $2)}' )
 
     __draw_line '~' SUMMARY; echo -en "${_summary}" | awk -F':' '{printf "%-27s %s\n", $1, $2}'
-    __draw_line '~'        ; echo -en " # ${cLNE}${cBLD}Usage${cRST} ==> 'mgen ${cSKY}{COMMAND}${cRST} <args...>'\n"
+    __draw_line '~'        ; echo -en " # ${cLNE}${cB_Y}Usage${cRST} ==> 'mgen ${cSKY}{COMMAND}${cRST} <args...>'\n"
     __draw_line '~'
 }
 
@@ -508,7 +536,7 @@ function MGEN_show_current_status() { # [. | stat] Show current run docker conta
             echo -e "${ERR} Get Docker Status Failed"
         else
             # Title
-            echo -e "${_cmd_out}" | head -1
+            echo -e "${cB_B}${_cmd_out}${cRST}" | head -1
             # Activated Container
             echo -e "${_cmd_out}"           | \
                 grep Up                     | \
@@ -528,8 +556,8 @@ function MGEN_show_current_status() { # [. | stat] Show current run docker conta
     fi
 
     __draw_line - STORAGE
-    _cmd_out=$(df -Th)
-    echo -e "   ${_cmd_out}" | head -1
+    _cmd_out=$(df -h | awk '{printf "%-14s %-8s %-8s %-8s %-8s ", $1, $2, $3, $4, $5; for (i=6; i<=NF; i++) printf "%s ", $i; printf "\n"}')
+    echo -e "   ${cB_B}${_cmd_out}" | head -1 && echo -en "${cRST}"
     echo -e "   ${_cmd_out}" | sort -rh -k3 | grep [0-9][GT] | grep -v "grep" | awk -F"#" '{print "   " $1}'
 
     __draw_line - PROCESS
@@ -956,3 +984,8 @@ alias mg='MGEN_SCRIPT_TOOL'
 # ================================================================ #
 
 alias sc='f() { source ~/.bashrc; echo -e "${FIN} Source ~/.bashrc Complete "; }; f'
+
+# ================================================================ #
+#                               SET                                #
+# ================================================================ #
+stty -ixon # Prevent Screen Pause by 'Ctrl + S'
