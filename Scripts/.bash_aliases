@@ -187,8 +187,19 @@ function __password_check() { # When initialize script & run command, check pass
 }
 
 function __get_keystroke_direct() { # Get keystroke direct
-    read -s -n3 _key_in
-    echo $_key_in
+    read -s -n 1 _key_0 > /dev/null; if [[ "$_key_0" = $'\e' ]]; then
+    read -s -n 1 _key_1 > /dev/null; if [[ "$_key_1" = "["   ]]; then
+    read -s -n 1 _key_2 > /dev/null; 
+
+    case "$_key_2" in
+    A) echo "UP"    ;;
+    B) echo "DOWN"  ;;
+    C) echo "RIGHT" ;;
+    D) echo "LEFT"  ;;
+    esac; 
+
+    else return 1; fi; 
+    else return 1; fi
 }
 
 function __check_selected() { # Visualize selected menu
@@ -196,6 +207,20 @@ function __check_selected() { # Visualize selected menu
     then echo -e "${cRST}${cSKY} > ${bWHT}${cBLK}"
     else echo -e "${cRST}   "
     fi
+}
+
+function __restore_stty() { #
+    # cursor blink on
+    printf "$ESC[?25h";
+    # if input, print console
+    stty echo
+}
+
+function __stop_stty() { #
+    # cursor blink off
+    printf "$ESC[?25l";
+    # if input, print ignore
+    stty -echo
 }
 
 function __draw_line() { # draw seperator line
@@ -256,6 +281,8 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
         _max_str_len=$(( ${_current_csw} - ${_elipsis_len} ))
     fi
     
+    __stop_stty
+
     __draw_line = 
     while [[ true ]]; 
     do
@@ -275,14 +302,14 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
 
         # Wait Key Input
         _key_inpt=$(__get_keystroke_direct);
-        if [[ $_key_inpt = "" ]]; then 
+        if [[ $_key_inpt = "" ]]; then
             break
         fi
         
         # Check input key
-        if   [[ $_key_inpt = "$ESC[A" ]];
+        if   [[ $_key_inpt = "UP"   || $_key_inpt = "LEFT"  ]];
         then _selected=$( expr $_selected - 1 );
-        elif [[ $_key_inpt = "$ESC[B" ]];
+        elif [[ $_key_inpt = "DOWN" || $_key_inpt = "RIGHT" ]];
         then _selected=$( expr $_selected + 1 );
         fi
         
@@ -296,6 +323,9 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
         # move cursor pointer upper
         printf "$ESC[$( expr $# + 3 )A";
     done
+
+    __restore_stty
+
     # return selected index => It can get out scope '$?'
     return `expr ${_selected} - 1`;
 }
@@ -443,14 +473,14 @@ function __install_mgen_script() { # install mgenScript files & extensions
 
     # CHECK :: .bash_aliases
     if [[ "${_check_recent}" == "${_updated_file}" ]]; then
-        echo -e "${RUN} INSTALL : ${SCRIPT_ABS_PATH}"
+        echo -e "${RUN} INSTALL => ${SCRIPT_ABS_PATH}"
         sudo cp -a "${_updated_file}" "${HOME}"
     fi
 
     # CHECK :: .bash_completion
     local _completion_file="${SCRIPT_BASE_DIR}/Scripts/.bash_completion"
     if [[ -e "${_completion_file}" ]]; then
-        echo -e "${RUN} INSTALL : .bash_completion"
+        echo -e "${RUN} INSTALL => .bash_completion"
         sudo cp -a "${_completion_file}" "${HOME}"
     fi
 
@@ -460,7 +490,7 @@ function __install_mgen_script() { # install mgenScript files & extensions
     # CHECK :: fzf_mgen
     if [[ -d "${_fzf_mg_file_path}" ]]; then
         if [[ -e "${_fzf_mg_file_path}/fzf_mgen" && ! -e "${_fzf_install_path}/fzf_mgen" ]]; then
-            echo -e "${RUN} Install : fzf_mgen"
+            echo -e "${RUN} INSTALL => fzf_mgen"
             sudo cp -a "${_fzf_mg_file_path}/fzf_mgen" "${_fzf_install_path}"
         fi
     fi
@@ -610,7 +640,7 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
         sudo rm ${_processes_log_file_name}
 
         echo -e; __draw_line SELECT_KILL_PROCESS
-        echo -e "  PID      || COMMAND"
+        echo -e "     PID      || COMMAND"
 
         local _process_list=()
         for i in "${!_full_log_list[@]}"; do
@@ -1061,6 +1091,7 @@ alias sc='f() { source ~/.bashrc > /dev/null; echo -e "${FIN} Source ~/.bashrc C
 #                               SET                                #
 # ================================================================ #
 stty -ixon # Prevent Screen Pause by 'Ctrl + S'
+trap __restore_stty SIGINT
 
 function _login_prompt() { #
     __draw_line = STORAGE
