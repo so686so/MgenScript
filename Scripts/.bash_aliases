@@ -893,7 +893,6 @@ function MGEN_update_script() { # [update] Update MgenScript
         else
             sudo mv "${SCRIPT_BASE_DIR}/.install.sh.backup" "${SCRIPT_BASE_DIR}/install_scripts.sh"
         fi
-
     fi
 
     if __install_mgen_script; then
