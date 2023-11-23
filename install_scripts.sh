@@ -12,7 +12,8 @@ script_path=$(readlink -f "$0")
 cd $(dirname ${script_path})
 
 sudo cp -a "./Scripts/.bash_aliases" "${HOME}/"
-source ${HOME}/.bash_aliases
+sudo cp -a "./Scripts/.bash_completion" "${HOME}/"
+source ${HOME}/.bashrc
 
 sudo cp -a "./Extensions/fzf_mgen" /usr/bin
 
