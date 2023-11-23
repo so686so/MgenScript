@@ -602,21 +602,19 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
         local _processes_log_file_name="${SCRIPT_DIR_NAME}/.current_process_list_for_mgen_script.log"
         local _full_log_list=()
 
-        __show_process_list > ${_processes_log_file_name}
-        while read line; do
-            _full_log_list+=("$(echo $line | awk '{printf " %-8s :: ", $1; for (i=4; i<=NF; i++) printf "%s ", $i; printf "\n"}')")
-        done < $_processes_log_file_name
-
+        __show_process_list | awk 'NR > 1 {print $0}' > ${_processes_log_file_name}
+        while IFS= read -r line; do
+            line=$(echo -e "${line}" | sed 's/\x1B\[[0-9;]*m//g')
+            _full_log_list+=("$(echo -e "$line" | awk '{printf " %-8d :: ", $1; for (i=4; i<=NF; i++) printf "%s ", $i; printf "\n"}')")
+        done <  $_processes_log_file_name
         sudo rm ${_processes_log_file_name}
+
+        echo -e; __draw_line SELECT_KILL_PROCESS
+        echo -e "  PID      || COMMAND"
 
         local _process_list=()
         for i in "${!_full_log_list[@]}"; do
-            if [[ $i -ne 0 ]]; then
-                _process_list+=("${_full_log_list[$i]}")
-            else
-                echo -e; __draw_line SELECT_KILL_PROCESS
-                echo -e "  PID      || COMMAND"
-            fi
+            _process_list+=("${_full_log_list[$i]}")
         done
 
         __select_menu "${_process_list[@]}"
@@ -798,23 +796,21 @@ function MGEN_uni_check_program_memory() { # [mem] Check memory usage
 
     # None input search word
     local _processes_log_file_name="${SCRIPT_DIR_NAME}/.current_process_list_for_mgen_script.log"
-
-    __show_process_list > ${_processes_log_file_name}
-
     local _full_log_list=()
-    while read line; do
+
+    __show_process_list | awk 'NR > 1 {print $0}' > ${_processes_log_file_name}
+    while IFS= read -r line; do
+        line=$(echo -e "${line}" | sed 's/\x1B\[[0-9;]*m//g')
         _full_log_list+=("$(echo $line | awk '{printf " %-8s :: ", $1; for (i=4; i<=NF; i++) printf "%s ", $i; printf "\n"}')")
     done <  $_processes_log_file_name
     sudo rm $_processes_log_file_name
 
+    __draw_line
+    echo -e "     PID      || COMMAND"
+
     local _process_list=()
     for i in "${!_full_log_list[@]}"; do
-        if [[ $i -ne 0 ]]; then
-            _process_list+=("${_full_log_list[$i]}")
-        else
-            __draw_line
-            echo -e "     PID      || COMMAND"
-        fi
+        _process_list+=("${_full_log_list[$i]}")
     done
 
     __select_menu "${_process_list[@]}"
