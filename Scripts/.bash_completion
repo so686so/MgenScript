@@ -1,0 +1,41 @@
+#!/bin/bash
+
+_mgen() {
+    local cur
+    COMPREPLY=()
+    _get_comp_words_by_ref cur
+
+    alias_list=( "status" "kill" "update" "cd" "bash" "ssh" "docker" "cam" "mem" )
+    total_list=(${alias_list[@]})
+
+    docker_container_list=($(__get_all_register_container_name))
+
+    if [[ $COMP_CWORD = 1 ]]
+    then
+        COMPREPLY=( $( compgen -W "$(echo ${total_list[@]})" -- "$cur" ) )
+
+    elif [[ $COMP_CWORD = 2 ]]
+    then
+        case "${COMP_WORDS[1]}" in
+        docker)
+            COMPREPLY=( $( compgen -W "bash ssh" -- "$cur" ) )
+            ;;
+
+        bash|ssh)
+            COMPREPLY=( $( compgen -W "$(echo ${docker_container_list[@]})" -- "$cur" ) )
+            ;;
+        esac
+
+    elif [[ $COMP_CWORD = 3 ]]
+    then
+        if   [[ "${COMP_WORDS[1]}" = "docker" && "${COMP_WORDS[2]}" = "bash" ]]
+        then
+            COMPREPLY=( $( compgen -W "$(echo ${docker_container_list[@]})" -- "$cur" ) )
+        elif [[ "${COMP_WORDS[1]}" = "docker" && "${COMP_WORDS[2]}" = "ssh" ]]
+        then
+            COMPREPLY=( $( compgen -W "$(echo ${docker_container_list[@]})" -- "$cur" ) )
+        fi
+    fi
+}
+complete -F _mgen mgen
+complete -F _mgen mg

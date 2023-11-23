@@ -300,36 +300,56 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
     return `expr ${_selected} - 1`;
 }
 
+function __get_all_register_container_name() { # Get all container name
+    __password_check && echo ${USER_PW} | sudo -S true
+
+    local _container_list=$(sudo docker ps -a --format 'table {{.Names}}' | awk 'NR > 1 {printf "%s ", $1}')
+    echo -e "${_container_list}"
+}
+
+function __is_valid_registered_container_name() { # check vaild container name
+    sudo docker ps -a --format 'table {{.Names}}' | grep "^$1$" > /dev/null
+}
+
 function __select_docker_container() { # Select one of the currently created containers
     local _select_container=""
     local _continaer_log_file_name_prev="${SCRIPT_DIR_NAME}/.current_continaer_for_mgen_script_non_sort.log"
     local _continaer_log_file_name_goal="${SCRIPT_DIR_NAME}/.current_continaer_for_mgen_script.log"
 
-    # Get currently created container containes current stopped
-    sudo docker ps -a --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | \
-        awk 'NR > 1 {printf "%-20s %-30s", $1, $2; for (i=3; i<=NF; i++) printf "%s ", $i; printf "\n" }' \
-        > ${_continaer_log_file_name_prev}
+    if __is_valid_registered_container_name $1
+    then
+        _select_container=$1
+    else
+        if [[ -n $1 ]]; then
+            echo -e "${ERR} ${cSKY}$1${cRST} is not valid docker container name, you can select :"
+        fi
 
-    # Sort :: Current activated conatiners higher
-    {
-        grep "Up" ${_continaer_log_file_name_prev} | sort
-        grep -v "Up" ${_continaer_log_file_name_prev}
-    } > ${_continaer_log_file_name_goal}
+        # Get currently created container containes current stopped
+        sudo docker ps -a --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | \
+            awk 'NR > 1 {printf "%-20s %-30s", $1, $2; for (i=3; i<=NF; i++) printf "%s ", $i; printf "\n" }' \
+            > ${_continaer_log_file_name_prev}
 
-    # Make List for '__select_menu'
-    local _container_list=()
-    while read line; do
-        _container_list+=("$(echo -e "$line")")
-    done < $_continaer_log_file_name_goal
+        # Sort :: Current activated conatiners higher
+        {
+            grep "Up" ${_continaer_log_file_name_prev} | sort
+            grep -v "Up" ${_continaer_log_file_name_prev}
+        } > ${_continaer_log_file_name_goal}
 
-    # remove used files
-    sudo rm $_continaer_log_file_name_prev
-    sudo rm $_continaer_log_file_name_goal
+        # Make List for '__select_menu'
+        local _container_list=()
+        while read line; do
+            _container_list+=("$(echo -e "$line")")
+        done < $_continaer_log_file_name_goal
 
-    # select one container
-    __select_menu "${_container_list[@]}" 
-    # It returns 'container_name image_name status'
-    _select_container=$(echo ${_container_list[$?]} | awk '{print $1}')
+        # remove used files
+        sudo rm $_continaer_log_file_name_prev
+        sudo rm $_continaer_log_file_name_goal
+
+        # select one container
+        __select_menu "${_container_list[@]}" 
+        # It returns 'container_name image_name status'
+        _select_container=$(echo ${_container_list[$?]} | awk '{print $1}')
+    fi
 
     local _is_start_container=$(sudo docker ps --format 'table {{.Names}}' | grep ^${_select_container}$)
     # Check select container activated
@@ -423,8 +443,15 @@ function __install_mgen_script() { # install mgenScript files & extensions
 
     # CHECK :: .bash_aliases
     if [[ "${_check_recent}" == "${_updated_file}" ]]; then
-        echo -e "${RUN} Install : ${SCRIPT_ABS_PATH}"
+        echo -e "${RUN} INSTALL : ${SCRIPT_ABS_PATH}"
         sudo cp -a "${_updated_file}" "${HOME}"
+    fi
+
+    # CHECK :: .bash_completion
+    local _completion_file="${SCRIPT_BASE_DIR}/Scripts/.bash_completion"
+    if [[ -e "${_completion_file}" ]]; then
+        echo -e "${RUN} INSTALL : .bash_completion"
+        sudo cp -a "${_completion_file}" "${HOME}"
     fi
 
     local _fzf_install_path="/usr/bin"
@@ -437,6 +464,7 @@ function __install_mgen_script() { # install mgenScript files & extensions
             sudo cp -a "${_fzf_mg_file_path}/fzf_mgen" "${_fzf_install_path}"
         fi
     fi
+
     # Update
     __set_option USER_PW "${_password}"
     __simplify_shell_login
@@ -624,7 +652,7 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
 }
 
 function MGEN_run_bash_target_container() { # [docker bash] Run /bin/bash target container
-    __select_docker_container
+    __select_docker_container $1
     local _selected_container=$(__get_current_selected_container)
 
     echo -e ${SET} "Try exec bash, Docker '${_selected_container}'"
@@ -632,7 +660,7 @@ function MGEN_run_bash_target_container() { # [docker bash] Run /bin/bash target
 }
 
 function MGEN_run_ssh_target_container() { # [docker ssh] Run ssh target container
-    __select_docker_container
+    __select_docker_container $1
     local _selected_container=$(__get_current_selected_container)
 
     local _port_num="None"
@@ -949,9 +977,9 @@ function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
 
             docker)
                 if   [[ "$2" == "bash" ]]; then
-                    MGEN_run_bash_target_container
+                    MGEN_run_bash_target_container $3
                 elif [[ "$2" == "ssh" ]]; then
-                    MGEN_run_ssh_target_container
+                    MGEN_run_ssh_target_container $3
                 else
                     MGEN_show_script_summary | more
                 fi
@@ -966,11 +994,11 @@ function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
                 ;;
 
             bash)
-                MGEN_run_bash_target_container
+                MGEN_run_bash_target_container $2
                 ;;
 
             ssh)
-                MGEN_run_ssh_target_container
+                MGEN_run_ssh_target_container $2
                 ;;
 
             update)
