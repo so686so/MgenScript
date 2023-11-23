@@ -632,6 +632,12 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
         local _processes_log_file_name="${SCRIPT_DIR_NAME}/.current_process_list_for_mgen_script.log"
         local _full_log_list=()
 
+        if [[ $(__show_process_list | wc -l) -lt 2 ]]; then
+            echo -e "${SET} There are no target programs active among PROCESS_SEARCH_LIST."
+            echo -e "${SET} PROCESS_SEARCH_LIST : $(echo -e "${PROCESS_SEARCH_LIST[@]}" | awk '{for (i=1; i<=NF; i++) printf"<%s>", $i; printf "\n"}')"
+            return
+        fi
+
         __show_process_list | awk 'NR > 1 {print $0}' > ${_processes_log_file_name}
         while IFS= read -r line; do
             line=$(echo -e "${line}" | sed 's/\x1B\[[0-9;]*m//g')
