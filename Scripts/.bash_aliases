@@ -78,6 +78,20 @@ function __show_logo() { # Print Mgensolutions logo
     echo -e "   ╩ ╩└─┘└─┘┘└┘──╚═╝└─┘┴└─┴┴   ┴ "
 }
 
+function __show_co_logo_colorful() { # show 'MGEN_Solutions' logo colorful
+    local _grn_1='\033[38;5;82m'
+    local _grn_2='\033[38;5;84m'
+    local _sky_1='\033[38;5;75m'
+    local _blu_1='\033[38;5;69m'
+    local _pup_1='\033[38;5;189m'
+    local _reset='\033[0m'
+    if [[ -n "$1" ]]; then echo -e; fi
+    echo -e " ${_grn_1}╔${_grn_2}╦${_sky_1}╗╔${_blu_1}═╗╔═╗╔╗╔  ╔═╗┌─┐┬  ┬ ┬┌┬┐┬┌─┐┌┐┌┌─┐${_pup_1}  (주)엠젠솔루션 ${_reset}"
+    echo -e " ${_grn_1}║${_grn_2}║${_sky_1}║║${_blu_1} ╦║╣ ║║║  ╚═╗│ ││  │ │ │ ││ ││││└─┐${_pup_1}   AI BigData Research Institute ${_reset}"
+    echo -e " ${_grn_1}╩${_grn_2} ${_sky_1}╩╚${_blu_1}═╝╚═╝╝╚╝──╚═╝└─┘┴─┘└─┘ ┴ ┴└─┘┘└┘└─┘${_pup_1}   www.mgensolutions.kr ${_reset}"
+    if [[ -n "$1" ]]; then echo -e; fi
+}
+
 function __get_console_w() { # Get current console width
     echo -e $(stty size | cut -d ' ' -f 2)
 }
@@ -389,25 +403,11 @@ function __show_process_list() { # Show Filter Process list
     fi
 }
 
-function __show_co_logo_colorful() { # show 'MGEN_Solutions' logo colorful
-    local _grn_1='\033[38;5;82m'
-    local _grn_2='\033[38;5;84m'
-    local _sky_1='\033[38;5;75m'
-    local _blu_1='\033[38;5;69m'
-    local _pup_1='\033[38;5;189m'
-    local _reset='\033[0m'
-    echo -e
-    echo -e " ${_grn_1}╔${_grn_2}╦${_sky_1}╗╔${_blu_1}═╗╔═╗╔╗╔  ╔═╗┌─┐┬  ┬ ┬┌┬┐┬┌─┐┌┐┌┌─┐${_pup_1}  (주)엠젠솔루션 ${_reset}"
-    echo -e " ${_grn_1}║${_grn_2}║${_sky_1}║║${_blu_1} ╦║╣ ║║║  ╚═╗│ ││  │ │ │ ││ ││││└─┐${_pup_1}   AI BigData Research Institute ${_reset}"
-    echo -e " ${_grn_1}╩${_grn_2} ${_sky_1}╩╚${_blu_1}═╝╚═╝╝╚╝──╚═╝└─┘┴─┘└─┘ ┴ ┴└─┘┘└┘└─┘${_pup_1}   www.mgensolutions.kr ${_reset}"
-    echo -e
-}
-
 function __simplify_shell_login() { # hide shell login (motd)
     __password_check && echo ${USER_PW} | sudo -S true
     if [[ -d /etc/update-motd.d ]]; then
         sudo chmod -x /etc/update-motd.d/*
-        __show_co_logo_colorful | sudo tee /etc/motd > /dev/null
+        __show_co_logo_colorful SAPCE | sudo tee /etc/motd > /dev/null
     fi
 }
 
@@ -518,7 +518,7 @@ function MGEN_show_current_status() { # [. | stat] Show current run docker conta
     echo ${USER_PW} | sudo -S clear
 
     __draw_line =
-    __show_logo
+    __show_co_logo_colorful
 
     # buffer for get command result
     local _cmd_out=""
@@ -884,8 +884,16 @@ function MGEN_update_script() { # [update] Update MgenScript
         # git pull 'MgenScript'
         echo -e "${TRY} Download MgenScript update files..."
         cd ${SCRIPT_BASE_DIR}
-        sudo rm -rf ${SCRIPT_BASE_DIR}/*.sh
+
+        sudo mv "${SCRIPT_BASE_DIR}/install_scripts.sh" "${SCRIPT_BASE_DIR}/.install.sh.backup"
         sudo git pull > /dev/null
+
+        if [[ -e "${SCRIPT_BASE_DIR}/install_scripts.sh" ]]; then
+            sudo rm "${SCRIPT_BASE_DIR}/.install.sh.backup"
+        else
+            sudo mv "${SCRIPT_BASE_DIR}/.install.sh.backup" "${SCRIPT_BASE_DIR}/install_scripts.sh"
+        fi
+
     fi
 
     if __install_mgen_script; then
