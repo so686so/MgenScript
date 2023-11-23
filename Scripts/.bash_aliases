@@ -910,8 +910,10 @@ function MGEN_cd_using_fzf() { # [cd] cd command with fuzzing find
     fi
 
     local _pre_dir=$(pwd)
-    if [[ "$1" == "HOME" ]]; then
+    if   [[ "$1" == "HOME" ]]; then
         cd ${HOME}
+    elif [[ "$1" == "ROOT" ]]; then
+        cd /
     fi
 
     echo -e "${SET} Search Start Point : ${cSKY}$(pwd)${cRST}"
@@ -976,8 +978,10 @@ function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
                 ;;
 
             cd)
-                if [[ "$2" == "." ]]
+                if   [[ "$2" == "." ]]
                 then MGEN_cd_using_fzf "CURRENT_DIR"
+                elif [[ "$2" == "/" ]]
+                then MGEN_cd_using_fzf "ROOT"
                 else MGEN_cd_using_fzf "HOME"
                 fi
                 ;;
