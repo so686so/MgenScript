@@ -951,7 +951,7 @@ function MGEN_cd_using_fzf() { # [cd] cd command with fuzzing find
         ROOT)
             _mov_dir="/"
             ;;
-            
+
         *)
             if [[ -e "$1" ]]
             then
@@ -969,6 +969,11 @@ function MGEN_cd_using_fzf() { # [cd] cd command with fuzzing find
         _mov_dir=$(dirname ${_move_dir})
     fi
     cd ${_mov_dir}
+    if [[ $? -gt 0 ]]; then
+        echo -e "${ERR} Change Directory to ${cYLW}${_mov_dir}${cRST} Failed..."
+        cd ${_pre_dir}
+        return
+    fi
 
     echo -e "${SET} Search Start Point : ${cSKY}${_mov_dir}${cRST}"
 
