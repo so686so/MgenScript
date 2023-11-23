@@ -633,8 +633,12 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
         local _full_log_list=()
 
         if [[ $(__show_process_list | wc -l) -lt 2 ]]; then
-            echo -e "${SET} There are no target programs active among PROCESS_SEARCH_LIST."
-            echo -e "${SET} PROCESS_SEARCH_LIST : $(echo -e "${PROCESS_SEARCH_LIST[@]}" | awk '{for (i=1; i<=NF; i++) printf"<%s>", $i; printf "\n"}')"
+            __draw_line
+            echo -e "${SET} There are no target programs active among ${cB_B}PROCESS_SEARCH_LIST${cRST}."
+            __draw_line
+            echo -en " ARGS | "
+            echo -e "${PROCESS_SEARCH_LIST[@]}" | awk '{for (i=1; i<=NF; i++) printf"<%s> ", $i; printf "\n"}'
+            __draw_line
             return
         fi
 
