@@ -166,7 +166,7 @@ function __password_check() { # When initialize script & run command, check pass
         if [[ $? -eq 0 ]]; then
             # If check pass, save password this script
             __set_option USER_PW $_p_in
-            source ~/.bashrc
+            source ~/.bashrc > /dev/null
             return
         fi
     done
@@ -391,15 +391,15 @@ function __show_process_list() { # Show Filter Process list
 
 function __show_co_logo_colorful() { # show 'MGEN_Solutions' logo colorful
     local _grn_1='\033[38;5;82m'
+    local _grn_2='\033[38;5;84m'
     local _sky_1='\033[38;5;75m'
     local _blu_1='\033[38;5;69m'
     local _pup_1='\033[38;5;189m'
     local _reset='\033[0m'
-    
     echo -e
-    echo -e " ${_grn_1}╔╦${_sky_1}╗╔${_blu_1}═╗╔═╗╔╗╔  ╔═╗┌─┐┬  ┬ ┬┌┬┐┬┌─┐┌┐┌┌─┐${_pup_1}  (주)엠젠솔루션 ${_reset}"
-    echo -e " ${_grn_1}║║${_sky_1}║║${_blu_1} ╦║╣ ║║║  ╚═╗│ ││  │ │ │ ││ ││││└─┐${_pup_1}   AI BigData Research Institute ${_reset}"
-    echo -e " ${_grn_1}╩ ${_sky_1}╩╚${_blu_1}═╝╚═╝╝╚╝──╚═╝└─┘┴─┘└─┘ ┴ ┴└─┘┘└┘└─┘${_pup_1}   www.mgensolutions.kr ${_reset}"
+    echo -e " ${_grn_1}╔${_grn_2}╦${_sky_1}╗╔${_blu_1}═╗╔═╗╔╗╔  ╔═╗┌─┐┬  ┬ ┬┌┬┐┬┌─┐┌┐┌┌─┐${_pup_1}  (주)엠젠솔루션 ${_reset}"
+    echo -e " ${_grn_1}║${_grn_2}║${_sky_1}║║${_blu_1} ╦║╣ ║║║  ╚═╗│ ││  │ │ │ ││ ││││└─┐${_pup_1}   AI BigData Research Institute ${_reset}"
+    echo -e " ${_grn_1}╩${_grn_2} ${_sky_1}╩╚${_blu_1}═╝╚═╝╝╚╝──╚═╝└─┘┴─┘└─┘ ┴ ┴└─┘┘└┘└─┘${_pup_1}   www.mgensolutions.kr ${_reset}"
     echo -e
 }
 
@@ -407,7 +407,7 @@ function __simplify_shell_login() { # hide shell login (motd)
     __password_check && echo ${USER_PW} | sudo -S true
     if [[ -d /etc/update-motd.d ]]; then
         sudo chmod -x /etc/update-motd.d/*
-        __show_co_logo_colorful | sudo tee /etc/motd
+        __show_co_logo_colorful | sudo tee /etc/motd > /dev/null
     fi
 }
 
@@ -440,7 +440,7 @@ function __install_mgen_script() { # install mgenScript files & extensions
     # Update
     __set_option USER_PW "${_password}"
     __simplify_shell_login
-    source ~/.bashrc
+    source ~/.bashrc > /dev/null
 }
 
 function __upload_script_to_git() { # upload git
@@ -983,9 +983,20 @@ alias mg='MGEN_SCRIPT_TOOL'
 #                          Global Aliases                          #
 # ================================================================ #
 
-alias sc='f() { source ~/.bashrc; echo -e "${FIN} Source ~/.bashrc Complete "; }; f'
+alias sc='f() { source ~/.bashrc > /dev/null; echo -e "${FIN} Source ~/.bashrc Complete "; }; f'
 
 # ================================================================ #
 #                               SET                                #
 # ================================================================ #
 stty -ixon # Prevent Screen Pause by 'Ctrl + S'
+
+function _login_prompt() { #
+    __draw_line = STORAGE
+    local _cmd_out=$(df -h | awk '{printf "%-14s %-8s %-8s %-8s %-8s ", $1, $2, $3, $4, $5; for (i=6; i<=NF; i++) printf "%s ", $i; printf "\n"}')
+    echo -e "   ${cB_B}${_cmd_out}" | head -1 && echo -en "${cRST}"
+    echo -e "   ${_cmd_out}" | sort -rh -k3 | grep [0-9][GT] | grep -v "grep" | head -1 | awk -F"#" '{print "   " $1}'
+
+    __draw_line - PROCESS
+    __show_process_list
+    __draw_line =
+}; _login_prompt
