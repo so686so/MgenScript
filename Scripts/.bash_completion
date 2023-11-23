@@ -24,6 +24,11 @@ _mgen() {
         bash|ssh)
             COMPREPLY=( $( compgen -W "$(echo ${docker_container_list[@]})" -- "$cur" ) )
             ;;
+        
+        cd)
+            compopt -o nospace
+            _filedir
+            ;;
         esac
 
     elif [[ $COMP_CWORD = 3 ]]

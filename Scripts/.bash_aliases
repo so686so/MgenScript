@@ -938,13 +938,39 @@ function MGEN_cd_using_fzf() { # [cd] cd command with fuzzing find
     fi
 
     local _pre_dir=$(pwd)
-    if   [[ "$1" == "HOME" ]]; then
-        cd ${HOME}
-    elif [[ "$1" == "ROOT" ]]; then
-        cd /
-    fi
+    local _mov_dir=
+    case $1 in
+        HOME)
+            _mov_dir="${HOME}"
+            ;;
 
-    echo -e "${SET} Search Start Point : ${cSKY}$(pwd)${cRST}"
+        CURR)
+            _mov_dir="${_pre_dir}"
+            ;;
+
+        ROOT)
+            _mov_dir="/"
+            ;;
+            
+        *)
+            if [[ -e "$1" ]]
+            then
+                _mov_dir="$1"
+            elif [[ -e "${_pre_dir}/$1" ]]
+            then
+                _mov_dir="${_pre_dir}/$1"
+            else
+                _mov_dir="${HOME}"
+            fi
+            ;;
+    esac
+
+    if [[ ! -d $_mov_dir ]]; then
+        _mov_dir=$(dirname ${_move_dir})
+    fi
+    cd ${_mov_dir}
+
+    echo -e "${SET} Search Start Point : ${cSKY}${_mov_dir}${cRST}"
 
     local _select_file=$( fzf_mgen ${FZF_SETTINGS} \
                           --preview 'if file -b {} | grep -q text; then cat {}; else echo "Not a text file"; fi' \
@@ -967,7 +993,7 @@ function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
     elif [[ $# -gt 0 ]]; then
         case $1 in
 
-            .|status)
+            .|stat|status)
                 MGEN_show_current_status | more
                 ;;
 
@@ -1007,10 +1033,15 @@ function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
 
             cd)
                 if   [[ "$2" == "." ]]
-                then MGEN_cd_using_fzf "CURRENT_DIR"
+                then MGEN_cd_using_fzf "CURR"
+
                 elif [[ "$2" == "/" ]]
                 then MGEN_cd_using_fzf "ROOT"
-                else MGEN_cd_using_fzf "HOME"
+
+                elif [[ "$2" == "~" ]]
+                then MGEN_cd_using_fzf "HOME"
+
+                else MGEN_cd_using_fzf $2
                 fi
                 ;;
         esac
