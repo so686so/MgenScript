@@ -884,6 +884,7 @@ function MGEN_update_script() { # [update] Update MgenScript
         # git pull 'MgenScript'
         echo -e "${TRY} Download MgenScript update files..."
         cd ${SCRIPT_BASE_DIR}
+        sudo rm -rf ${SCRIPT_BASE_DIR}/*.sh
         sudo git pull > /dev/null
     fi
 
