@@ -15,6 +15,8 @@ sudo cp -a "./Scripts/.bash_aliases" "${HOME}/"
 sudo cp -a "./Scripts/.bash_completion" "${HOME}/"
 source ${HOME}/.bashrc
 
+__simplify_shell_login
+
 sudo cp -a "./Extensions/fzf_mgen" /usr/bin
 
 cd ${current_dir}
