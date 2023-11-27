@@ -724,13 +724,16 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
     echo -e
     __draw_line - PROCESS_CANDIDATES
     __show_process_list | __remove_ascii_escape_words | awk '{printf " %-8s :: ", $1; for (i=4; i<=NF; i++) printf "%s ", $i; printf "\n"}' | grep "$_find_pid"
+
     # check delete process exactly
     __draw_line -
     echo -en ${SET} "If you don't want kill Process, ${cSKY}Ctrl+C${cRST}\n"
     echo -en ${SET} "If you want above process list, press ${cSKY}Enter${cRST} => "
+
     # read confirm key
     read confirmDelete
     sudo kill -9 ${_kill_targets}
+
     # print Done
     echo -e ${FIN} "Kill All Process : ${cYLW}$_kill_tgt_cnt${cRST}"
 }
@@ -747,14 +750,15 @@ function MGEN_run_ssh_target_container() { # [docker ssh] Run ssh target contain
     __select_docker_container $1
     local _selected_container=${DEFAULT_DOCKER}
 
+    local _ssh_config_path="/etc/ssh/sshd_config"
     local _port_num="None"
-    local _is_activated_port_num=$(sudo docker exec ${_selected_container} cat /etc/ssh/sshd_config | grep ^Port | wc -l )
+    local _is_activated_port_num=$(sudo docker exec ${_selected_container} cat ${_ssh_config_path} | grep ^Port | wc -l )
     if [[ $_is_activated_port_num -gt 0 ]]; then
-        _port_num=$(sudo docker exec ${_selected_container} cat /etc/ssh/sshd_config | grep ^Port | awk -F' ' '{print $2}')
+        _port_num=$(sudo docker exec ${_selected_container} cat ${_ssh_config_path} | grep ^Port | awk -F' ' '{print $2}')
     fi
 
     local _permit_root_login="False"
-    local _is_activated_permit=$(sudo docker exec ${_selected_container} cat /etc/ssh/sshd_config | grep ^PermitRootLogin | wc -l )
+    local _is_activated_permit=$(sudo docker exec ${_selected_container} cat ${_ssh_config_path} | grep ^PermitRootLogin | wc -l )
     if [[ $_is_activated_permit -gt 0 ]]; then
         _permit_root_login="True"
     fi
@@ -782,13 +786,13 @@ function MGEN_run_ssh_target_container() { # [docker ssh] Run ssh target contain
 
     # Change ssh port
     if [[ $_is_activated_port_num -eq 0 ]]; then
-        sudo docker exec ${_selected_container} sed -i "s/#Port 22/Port ${_port_num}/" /etc/ssh/sshd_config
+        sudo docker exec ${_selected_container} sed -i "s/#Port 22/Port ${_port_num}/" ${_ssh_config_path}
     else
-        sudo docker exec ${_selected_container} sed -i "/Port [0-9]\+/s/.*/Port ${_port_num}/" /etc/ssh/sshd_config
+        sudo docker exec ${_selected_container} sed -i "/Port [0-9]\+/s/.*/Port ${_port_num}/" ${_ssh_config_path}
     fi
 
     # Change permit root login
-    sudo docker exec ${_selected_container} sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sudo docker exec ${_selected_container} sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' ${_ssh_config_path}
 
     __draw_line - SSH_CONNECT
     local _is_not_run=$(sudo docker exec ${_selected_container} service ssh status | grep "not running" | wc -l )
