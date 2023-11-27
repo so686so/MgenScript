@@ -483,11 +483,11 @@ function __show_process_list() { # Show Filter Process list
     # Print Details
     if expr "$_cpu_core" + 0 > /dev/null; then
         echo -e "${_output}" | \
-        sed 's/\x1B\[[0-9;]*m//g' | \
+        sed 's/\x1[Bb]\[[0-9;]*m//g' | \
         awk -v SPLIT="$_cpu_core" 'NR > 1 {printf"   %-14s %-8.2f %-8.2f ", $2, $3 / SPLIT, $4; for (i=11; i<=NF; i++) printf "%s ", $i; printf "\n"}'
     else
         echo -e "${_output}" | \
-        sed 's/\x1B\[[0-9;]*m//g' | \
+        sed 's/\x1[Bb]\[[0-9;]*m//g' | \
         awk 'NR > 1 {printf"   %-14s %-8.2f %-8.2f ", $2, $3, $4; for (i=11; i<=NF; i++) printf "%s ", $i; printf "\n"}'
     fi
 }
@@ -496,14 +496,17 @@ function __simplify_shell_login() { # hide shell login (motd)
     __password_check && echo ${USER_PW} | sudo -S true
     if [[ -d /etc/update-motd.d ]]; then
         sudo chmod -x /etc/update-motd.d/*
-        __show_co_logo_colorful SAPCE | sudo tee /etc/motd > /dev/null
+        __show_co_logo_colorful "SAPCE" | sudo tee /etc/motd > /dev/null
     fi
 }
 
 function __install_mgen_script() { # install mgenScript files & extensions
+    # Error return value
+    E_MGEN_INSTALL=99
+
     if [[ ! -d "${SCRIPT_BASE_DIR}/Scripts" ]]; then
-        echo -e "${ERR} Install failed => \"${cSKY}${SCRIPT_BASE_DIR}${cRST}\" directory not exists"
-        return 1
+        echo -e "${ERR} Install failed => \"${cSKY}${SCRIPT_BASE_DIR}/Scripts${cRST}\" directory not exists"
+        return $E_MGEN_INSTALL
     fi
 
     local _password=${USER_PW}
@@ -511,8 +514,8 @@ function __install_mgen_script() { # install mgenScript files & extensions
     local _check_recent="$(__get_more_recent_edit_file "${SCRIPT_ABS_PATH}" "${_updated_file}")"
 
     # CHECK :: .bash_aliases
-    if [[ "${_check_recent}" == "${_updated_file}" ]]; then
-        echo -e "${RUN} INSTALL => ${SCRIPT_ABS_PATH}"
+    if [[ "${_check_recent}" = "${_updated_file}" ]]; then
+        echo -e "${RUN} INSTALL :: ${_updated_file} -> ${SCRIPT_ABS_PATH}"
         sudo cp -a "${_updated_file}" "${HOME}"
         source ${SCRIPT_ABS_PATH} > /dev/null
     fi
@@ -520,7 +523,7 @@ function __install_mgen_script() { # install mgenScript files & extensions
     # CHECK :: .bash_completion
     local _completion_file="${SCRIPT_BASE_DIR}/Scripts/.bash_completion"
     if [[ -e "${_completion_file}" ]]; then
-        echo -e "${RUN} INSTALL => .bash_completion"
+        echo -e "${RUN} INSTALL :: ${_completion_file} -> ${HOME}/.bash_completion"
         sudo cp -a "${_completion_file}" "${HOME}"
     fi
 
@@ -530,20 +533,20 @@ function __install_mgen_script() { # install mgenScript files & extensions
     # CHECK :: fzf_mgen
     if [[ -d "${_fzf_mg_file_path}" ]]; then
         if [[ -e "${_fzf_mg_file_path}/fzf_mgen" && ! -e "${_fzf_install_path}/fzf_mgen" ]]; then
-            echo -e "${RUN} INSTALL => fzf_mgen"
+            echo -e "${RUN} INSTALL :: ${_fzf_mg_file_path}/fzf_mgen -> ${_fzf_install_path}"
             sudo cp -a "${_fzf_mg_file_path}/fzf_mgen" "${_fzf_install_path}"
         fi
     fi
 
-    # remember : passwd
+    # backup origin passwd
     __set_option USER_PW "${_password}"
-    # renewal : shell login prompt
+    # renewal shell login prompt
     __simplify_shell_login
-    # apply : update
+    # apply update
     source ${SCRIPT_ABS_PATH} > /dev/null
 }
 
-function __upload_script_to_git() { # upload git
+function __upload_script_to_git() { # upload to git
     local _cur_dir=$(pwd)
 
     if __check_git_remote_url_reachable; then
@@ -567,7 +570,7 @@ function __upload_script_to_git() { # upload git
         __password_check && echo ${USER_PW} | sudo -S true
 
         # 토큰을 사용하는지 확인
-        if [[ "$_remote_url" == *"github.com"* && "$_remote_url" != *"https://"* ]]; then
+        if [[ "$_remote_url" = *"$_token"* ]]; then
             echo -e "${SET} Remote URL already contains a token."
         else
             # GitHub 사용자 이름과 액세스 토큰
@@ -575,7 +578,7 @@ function __upload_script_to_git() { # upload git
             local _github_token="${_token}"
 
             # 새로운 토큰을 추가한 URL로 변경
-            local _new_remote_url=$(echo "$_remote_url" | sed "s/https:\/\/github.com/https:\/\/$_github_username:$_github_token@github.com/")
+            local _new_remote_url=$(echo "$_remote_url" | sed "s/https:\/\/.*github.com/https:\/\/$_github_username:$_github_token@github.com/")
 
             # 변경된 URL을 Git에 적용
             sudo git remote set-url origin $_new_remote_url
