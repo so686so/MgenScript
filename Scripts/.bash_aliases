@@ -179,11 +179,15 @@ function __password_check() { # When initialize script & run command, check pass
     # get saved pw value
     local _p_in=${USER_PW}
 
+    # Error return value
+    E_PASSWD_CHECK=12
     # Check Part
     if [[ -n $_p_in ]]; then
         echo "$_p_in" | sudo -S grep ${USER_ID} /etc/shadow > /dev/null 2>&1
-        if [[ $? -eq 0 ]]; then
-            return
+        if   [[ $? -eq 0 ]]; then
+            return 0
+        elif [[ $? -gt 0 && "$1" = "CHECK_ONCE" ]]; then
+            return $E_PASSWD_CHECK
         fi
     fi
 
@@ -200,14 +204,16 @@ function __password_check() { # When initialize script & run command, check pass
         if [[ $? -eq 0 ]]; then
             # If check pass, save password this script
             __set_option USER_PW $_p_in
-            return
+            return 0
         fi
     done
 }
 
 function __get_keystroke_direct() { # Get keystroke direct
-    read -s -n 1 _key_0 > /dev/null; if [[ "$_key_0" = $'\e' ]]; then
-    read -s -n 1 _key_1 > /dev/null; if [[ "$_key_1" = "["   ]]; then
+    E_KEY_INPUT=33
+    # read keys each byte
+    read -s -n 1 _key_0 > /dev/null; if [[ "$_key_0" = $ESC ]]; then
+    read -s -n 1 _key_1 > /dev/null; if [[ "$_key_1" = "["  ]]; then
     read -s -n 1 _key_2 > /dev/null; 
 
     case "$_key_2" in
@@ -217,8 +223,8 @@ function __get_keystroke_direct() { # Get keystroke direct
     D) echo "LEFT"  ;;
     esac; 
 
-    else return 1; fi; 
-    else return 1; fi
+    else return $E_KEY_INPUT; fi;
+    else return $E_KEY_INPUT; fi
 }
 
 function __check_selected() { # Visualize selected menu
@@ -228,14 +234,14 @@ function __check_selected() { # Visualize selected menu
     fi
 }
 
-function __restore_stty() { #
+function __restore_stty() { # cursor blink on & activate echo
     # cursor blink on
     printf "$ESC[?25h";
     # if input, print console
     stty echo
 }
 
-function __stop_stty() { #
+function __stop_stty() { # cursor blink off & disable echo
     # cursor blink off
     printf "$ESC[?25l";
     # if input, print ignore
@@ -248,7 +254,7 @@ function __draw_line() { # draw seperator line
 
     # Get line word option setting : Default "-"
     if [[ $# -ge 1 ]]; then
-        local _arg_first=$1
+        local _arg_first="$1"
         # If first argument length > 1, it set as 'explain'
         if [[ ${#_arg_first} -gt 1 ]]; then
             _line_expl=" [ $_arg_first ] "
@@ -262,7 +268,7 @@ function __draw_line() { # draw seperator line
     fi
 
     # Check draw line limit
-    local _total_line_len=$(__get_console_w)
+    local _total_line_len=$( __get_console_w )
     if [[ $_total_line_len -ge $DRAW_LINE_MAX_LEN ]]; then
         _total_line_len=$DRAW_LINE_MAX_LEN
     fi
@@ -273,7 +279,7 @@ function __draw_line() { # draw seperator line
 
     # Make draw line
     local _full_line=""
-    for i in $(seq 1 $_line_len); do
+    for i in $( seq $_line_len ); do
         _full_line="${_full_line}${_line_word}"
     done
 
@@ -300,6 +306,7 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
         _max_str_len=$(( ${_current_csw} - ${_elipsis_len} ))
     fi
     
+    # cursor blink off & disable echo
     __stop_stty
 
     __draw_line = 
@@ -343,6 +350,7 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
         printf "$ESC[$( expr $# + 3 )A";
     done
 
+    # cursor blink on & activate echo
     __restore_stty
 
     # return selected index => It can get out scope '$?'
@@ -350,10 +358,22 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
 }
 
 function __get_all_register_container_name() { # Get all container name
-    __password_check && echo ${USER_PW} | sudo -S true
+    # Error return value
+    E_GET_SUDO_PASSWD=11
 
+    # check saved password exists
+    if [[ ! -n "${USER_PW}" ]]; then
+        echo -e " "; return $E_GET_SUDO_PASSWD
+    fi
+    # check password valid
+    if ! __password_check "CHECK_ONCE"; then
+        echo -e " "; return $E_GET_SUDO_PASSWD
+    fi
+
+    echo ${USER_PW} | sudo -S true
     local _container_list=$(sudo docker ps -a --format 'table {{.Names}}' | awk 'NR > 1 {printf "%s ", $1}')
     echo -e "${_container_list}"
+    return 0
 }
 
 function __is_valid_registered_container_name() { # check vaild container name
@@ -380,7 +400,7 @@ function __select_docker_container() { # Select one of the currently created con
 
         # Sort :: Current activated conatiners higher
         {
-            grep "Up" ${_continaer_log_file_name_prev} | sort
+            grep    "Up" ${_continaer_log_file_name_prev} | sort
             grep -v "Up" ${_continaer_log_file_name_prev}
         } > ${_continaer_log_file_name_goal}
 
@@ -411,13 +431,6 @@ function __select_docker_container() { # Select one of the currently created con
     __set_option DEFAULT_DOCKER ${_select_container}
 }
 
-function __get_current_selected_container() { # Get current select docker contianer without 'source'
-    local _target=$( grep "DEFAULT_DOCKER=" ${SCRIPT_ABS_PATH} | \
-                     awk -F' ' 'NR=1 {print $1}' | \
-                     awk -F'=' 'NR=1 {print $2}')
-    echo -e "${_target}"
-}
-
 function __get_more_recent_edit_file() { # determine which of two files was most recently modified
     local _file_1=$1
     local _file_2=$2
@@ -425,11 +438,11 @@ function __get_more_recent_edit_file() { # determine which of two files was most
     if [[ -e "$_file_1" && -e "$_file_2" ]]; then
         # Get the modification time in seconds since the epoch for each file
         local _time_1=$(stat -c %Y "$_file_1")
-        local time_2=$(stat -c %Y "$_file_2")
+        local _time_2=$(stat -c %Y "$_file_2")
 
         # Compare modification times
-        if   [[ "$_time_1" -gt "$time_2" ]]; then echo "$_file_1"
-        elif [[ "$_time_1" -lt "$time_2" ]]; then echo "$_file_2"
+        if   [[ "$_time_1" -gt "$_time_2" ]]; then echo "$_file_1"
+        elif [[ "$_time_1" -lt "$_time_2" ]]; then echo "$_file_2"
         else echo "$_file_1"
         fi
     else
@@ -721,7 +734,7 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
 
 function MGEN_run_bash_target_container() { # [docker bash] Run /bin/bash target container
     __select_docker_container $1
-    local _selected_container=$(__get_current_selected_container)
+    local _selected_container=${DEFAULT_DOCKER}
 
     echo -e ${SET} "Try exec bash, Docker '${_selected_container}'"
     sudo docker exec -it ${_selected_container} /bin/bash
@@ -729,7 +742,7 @@ function MGEN_run_bash_target_container() { # [docker bash] Run /bin/bash target
 
 function MGEN_run_ssh_target_container() { # [docker ssh] Run ssh target container
     __select_docker_container $1
-    local _selected_container=$(__get_current_selected_container)
+    local _selected_container=${DEFAULT_DOCKER}
 
     local _port_num="None"
     local _is_activated_port_num=$(sudo docker exec ${_selected_container} cat /etc/ssh/sshd_config | grep ^Port | wc -l )
