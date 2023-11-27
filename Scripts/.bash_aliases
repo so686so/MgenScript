@@ -41,19 +41,48 @@ DRAW_LINE_MAX_LEN=100
 # ----------------------------------------------------------------- #
 FZF_SETTINGS="--height 50% --reverse --cycle \
               --bind=ctrl-space:preview-page-down"
+# ----------------------------------------------------------------- #
+USE_256_COLORS=Y
+# ----------------------------------------------------------------- #
+ESC='\033'
 # ================================================================= #
 
 
 # ================================================================= #
 # Global Define : COLORS
 # ================================================================= #
-cBLK='\033[30m'; cRED='\033[31m'; cGRN='\033[32m'
-cYLW='\033[33m'; cBLU='\033[34m'; cSKY='\033[36m'
-cWHT='\033[37m'; bWHT='\033[47m'; cRST='\033[00m'
-cBLD='\033[01m'; cDIM='\033[02m'; cLNE='\033[04m'
-cGRY='\033[90m'; cMGT='\033[35m'; 
-cB_W='\033[97m'; cB_R='\033[91m'; cB_B='\033[94m'
-cB_Y='\033[93m';
+# color functions
+_clr_()     { echo $ESC'['$1'm'; }
+_clr_256_() { echo $ESC'[38;5;'$1'm'; }
+# ----------------------------------------------------------------- #
+# 8-bit colors
+cRST=`_clr_ 00`; cBLD=`_clr_ 01`; cDIM=`_clr_ 02`; 
+cLNE=`_clr_ 04`;
+
+cBLK=`_clr_ 30`; cRED=`_clr_ 31`; cGRN=`_clr_ 32`; 
+cYLW=`_clr_ 33`; cBLU=`_clr_ 34`; cMGT=`_clr_ 35`; 
+cSKY=`_clr_ 36`; cWHT=`_clr_ 37`
+
+bBLK=`_clr_ 40`; bRED=`_clr_ 41`; bGRN=`_clr_ 42`; 
+bYLW=`_clr_ 43`; bBLU=`_clr_ 44`; bMGT=`_clr_ 45`; 
+bSKY=`_clr_ 46`; bWHT=`_clr_ 47`
+
+cGRY=`_clr_ 90`; cB_R=`_clr_ 91`; cB_Y=`_clr_ 93`
+cB_B=`_clr_ 94`; cB_W=`_clr_ 97`
+# ----------------------------------------------------------------- #
+# 256-bit colors
+if [[ "${USE_256_COLORS}" = "Y" ]]; then
+c256_GRN_00=`_clr_256_ 82`; c256_GRN_01=`_clr_256_ 84`
+c256_BLU_00=`_clr_256_ 75`; c256_BLU_01=`_clr_256_ 69`
+c256_PUP_00=`_clr_256_ 189`
+# ----------------------------------------------------------------- #
+# 'MgenSolutions' Logo colors
+cLOGO_00="${c256_GRN_00}"; cLOGO_01="${c256_GRN_01}"
+cLOGO_02="${c256_BLU_00}"; cLOGO_03="${c256_BLU_01}"
+else
+unset cLOGO_00; unset cLOGO_01
+unset cLOGO_02; unset cLOGO_03
+fi
 # ================================================================= #
 
 
@@ -65,7 +94,6 @@ TRY="${cBLD}[ ${cYLW}TRY${cRST} ${cBLD}]${cRST}"
 SET="${cBLD}[ ${cBLU}SET${cRST} ${cBLD}]${cRST}"
 ERR="${cBLD}[ ${cRED}ERR${cRST} ${cBLD}]${cRST}"
 FIN="${cBLD}[ ${cGRN}FIN${cRST} ${cBLD}]${cRST}"
-ESC=`printf "\033"`;
 # ================================================================= #
 
 
@@ -79,16 +107,10 @@ function __show_logo() { # Print Mgensolutions logo
 }
 
 function __show_co_logo_colorful() { # show 'MGEN_Solutions' logo colorful
-    local _grn_1='\033[38;5;82m'
-    local _grn_2='\033[38;5;84m'
-    local _sky_1='\033[38;5;75m'
-    local _blu_1='\033[38;5;69m'
-    local _pup_1='\033[38;5;189m'
-    local _reset='\033[0m'
     if [[ -n "$1" ]]; then echo -e; fi
-    echo -e " ${_grn_1}╔${_grn_2}╦${_sky_1}╗╔${_blu_1}═╗╔═╗╔╗╔  ╔═╗┌─┐┬  ┬ ┬┌┬┐┬┌─┐┌┐┌┌─┐${_pup_1}  (주)엠젠솔루션 ${_reset}"
-    echo -e " ${_grn_1}║${_grn_2}║${_sky_1}║║${_blu_1} ╦║╣ ║║║  ╚═╗│ ││  │ │ │ ││ ││││└─┐${_pup_1}   AI BigData Research Institute ${_reset}"
-    echo -e " ${_grn_1}╩${_grn_2} ${_sky_1}╩╚${_blu_1}═╝╚═╝╝╚╝──╚═╝└─┘┴─┘└─┘ ┴ ┴└─┘┘└┘└─┘${_pup_1}   www.mgensolutions.kr ${_reset}"
+    echo -e " ${cLOGO_00}╔${cLOGO_01}╦${cLOGO_02}╗╔${cLOGO_03}═╗╔═╗╔╗╔  ╔═╗┌─┐┬  ┬ ┬┌┬┐┬┌─┐┌┐┌┌─┐${c256_PUP_00}  (주)엠젠솔루션 ${cRST}"
+    echo -e " ${cLOGO_00}║${cLOGO_01}║${cLOGO_02}║║${cLOGO_03} ╦║╣ ║║║  ╚═╗│ ││  │ │ │ ││ ││││└─┐${c256_PUP_00}   AI BigData Research Institute ${cRST}"
+    echo -e " ${cLOGO_00}╩${cLOGO_01} ${cLOGO_02}╩╚${cLOGO_03}═╝╚═╝╝╚╝──╚═╝└─┘┴─┘└─┘ ┴ ┴└─┘┘└┘└─┘${c256_PUP_00}   www.mgensolutions.kr ${cRST}"
     if [[ -n "$1" ]]; then echo -e; fi
 }
 
@@ -477,6 +499,7 @@ function __install_mgen_script() { # install mgenScript files & extensions
     if [[ "${_check_recent}" == "${_updated_file}" ]]; then
         echo -e "${RUN} INSTALL => ${SCRIPT_ABS_PATH}"
         sudo cp -a "${_updated_file}" "${HOME}"
+        source ~/.bash_aliases > /dev/null
     fi
 
     # CHECK :: .bash_completion
@@ -497,9 +520,13 @@ function __install_mgen_script() { # install mgenScript files & extensions
         fi
     fi
 
-    # Update
+    # remember : passwd
     __set_option USER_PW "${_password}"
+    # apply : passwd
+    source ~/.bash_aliases > /dev/null
+    # renewal : shell login prompt
     __simplify_shell_login
+    # apply : update
     source ~/.bashrc > /dev/null
 }
 
@@ -1107,7 +1134,7 @@ stty -ixon # Prevent Screen Pause by 'Ctrl + S'
 trap __restore_stty SIGINT
 
 function _login_prompt() { #
-    __draw_line = STORAGE
+    __draw_line = MAIN_STORAGE
     local _cmd_out=$(df -h | awk '{printf "%-14s %-8s %-8s %-8s %-8s ", $1, $2, $3, $4, $5; for (i=6; i<=NF; i++) printf "%s ", $i; printf "\n"}')
     echo -e "   ${cB_B}${_cmd_out}" | head -1 && echo -en "${cRST}"
     echo -e "   ${_cmd_out}" | sort -rh -k3 | grep [0-9][GT] | grep -v "grep" | head -1 | awk -F"#" '{print "   " $1}'
