@@ -7,7 +7,7 @@
 # * This file is shell script bundle for 'MgenSolutions'            #
 # ----------------------------------------------------------------- #
 # * Version     : 1.0.0                                             #
-# * Last Update : 23-11-21                                          #
+# * Last Update : 23-11-27                                          #
 # * Author      : So Byung Jun                                      #
 # ================================================================= #
 GitAddress="https://github.com/so686so/MgenScript.git"              #
@@ -26,16 +26,15 @@ USER_PW=
 # Global Define : ENVIRONMENT
 # ================================================================= #
 SCRIPT_BASE_DIR="${HOME}/MgenScript"
-# ----------------------------------------------------------------- #
 SCRIPT_ABS_PATH="${HOME}/.bash_aliases"
-SCRIPT_FILENAME=$(basename "${SCRIPT_ABS_PATH}")
-SCRIPT_DIR_NAME=$(dirname  "${SCRIPT_ABS_PATH}")
+SCRIPT_FILENAME=$( basename "${SCRIPT_ABS_PATH}" )
+SCRIPT_DIR_NAME=$( dirname  "${SCRIPT_ABS_PATH}" )
 # ----------------------------------------------------------------- #
 DEFAULT_DOCKER=raid
 # ----------------------------------------------------------------- #
-PROCESS_SEARCH_LIST=("mono" "UVES" "RAID" "glances" "nvtop" "PID"\
-                     "\.sh$" "\.exe$" "\.py$")
-PROCESS_IGRNOE_LIST=("grep" "vi" "vscode" "${SCRIPT_FILENAME}")
+PROCESS_SEARCH_KEY_LIST=("mono" "UVES" "RAID" "glances" "nvtop" "PID")
+PROCESS_SEARCH_EXT_LIST=("\.sh$" "\.exe$" "\.py$")
+PROCESS_IGRNOE_KEY_LIST=("grep" "vi" "vscode" "${SCRIPT_FILENAME}")
 # ----------------------------------------------------------------- #
 DRAW_LINE_MAX_LEN=100
 # ----------------------------------------------------------------- #
@@ -44,7 +43,7 @@ FZF_SETTINGS="--height 50% --reverse --cycle \
 # ----------------------------------------------------------------- #
 USE_256_COLORS=Y
 # ----------------------------------------------------------------- #
-ESC='\033'
+ESC=$'\033'
 # ================================================================= #
 
 
@@ -58,15 +57,12 @@ _clr_256_() { echo $ESC'[38;5;'$1'm'; }
 # 8-bit colors
 cRST=`_clr_ 00`; cBLD=`_clr_ 01`; cDIM=`_clr_ 02`; 
 cLNE=`_clr_ 04`;
-
 cBLK=`_clr_ 30`; cRED=`_clr_ 31`; cGRN=`_clr_ 32`; 
 cYLW=`_clr_ 33`; cBLU=`_clr_ 34`; cMGT=`_clr_ 35`; 
 cSKY=`_clr_ 36`; cWHT=`_clr_ 37`
-
 bBLK=`_clr_ 40`; bRED=`_clr_ 41`; bGRN=`_clr_ 42`; 
 bYLW=`_clr_ 43`; bBLU=`_clr_ 44`; bMGT=`_clr_ 45`; 
 bSKY=`_clr_ 46`; bWHT=`_clr_ 47`
-
 cGRY=`_clr_ 90`; cB_R=`_clr_ 91`; cB_Y=`_clr_ 93`
 cB_B=`_clr_ 94`; cB_W=`_clr_ 97`
 # ----------------------------------------------------------------- #
@@ -79,9 +75,11 @@ c256_PUP_00=`_clr_256_ 189`
 # 'MgenSolutions' Logo colors
 cLOGO_00="${c256_GRN_00}"; cLOGO_01="${c256_GRN_01}"
 cLOGO_02="${c256_BLU_00}"; cLOGO_03="${c256_BLU_01}"
+cLOGO_04="${c256_PUP_00}"
 else
 unset cLOGO_00; unset cLOGO_01
 unset cLOGO_02; unset cLOGO_03
+unset cLOGO_04
 fi
 # ================================================================= #
 
@@ -93,7 +91,7 @@ RUN="${cBLD}[ ${cGRN}RUN${cRST} ${cBLD}]${cRST}"
 TRY="${cBLD}[ ${cYLW}TRY${cRST} ${cBLD}]${cRST}"
 SET="${cBLD}[ ${cBLU}SET${cRST} ${cBLD}]${cRST}"
 ERR="${cBLD}[ ${cRED}ERR${cRST} ${cBLD}]${cRST}"
-FIN="${cBLD}[ ${cGRN}FIN${cRST} ${cBLD}]${cRST}"
+FIN="${cBLD}[ ${cSKY}FIN${cRST} ${cBLD}]${cRST}"
 # ================================================================= #
 
 
@@ -108,9 +106,9 @@ function __show_logo() { # Print Mgensolutions logo
 
 function __show_co_logo_colorful() { # show 'MGEN_Solutions' logo colorful
     if [[ -n "$1" ]]; then echo -e; fi
-    echo -e " ${cLOGO_00}╔${cLOGO_01}╦${cLOGO_02}╗╔${cLOGO_03}═╗╔═╗╔╗╔  ╔═╗┌─┐┬  ┬ ┬┌┬┐┬┌─┐┌┐┌┌─┐${c256_PUP_00}  (주)엠젠솔루션 ${cRST}"
-    echo -e " ${cLOGO_00}║${cLOGO_01}║${cLOGO_02}║║${cLOGO_03} ╦║╣ ║║║  ╚═╗│ ││  │ │ │ ││ ││││└─┐${c256_PUP_00}   AI BigData Research Institute ${cRST}"
-    echo -e " ${cLOGO_00}╩${cLOGO_01} ${cLOGO_02}╩╚${cLOGO_03}═╝╚═╝╝╚╝──╚═╝└─┘┴─┘└─┘ ┴ ┴└─┘┘└┘└─┘${c256_PUP_00}   www.mgensolutions.kr ${cRST}"
+    echo -e " ${cLOGO_00}╔${cLOGO_01}╦${cLOGO_02}╗╔${cLOGO_03}═╗╔═╗╔╗╔  ╔═╗┌─┐┬  ┬ ┬┌┬┐┬┌─┐┌┐┌┌─┐${cLOGO_04}  (주)엠젠솔루션 ${cRST}"
+    echo -e " ${cLOGO_00}║${cLOGO_01}║${cLOGO_02}║║${cLOGO_03} ╦║╣ ║║║  ╚═╗│ ││  │ │ │ ││ ││││└─┐${cLOGO_04}   AI BigData Research Institute ${cRST}"
+    echo -e " ${cLOGO_00}╩${cLOGO_01} ${cLOGO_02}╩╚${cLOGO_03}═╝╚═╝╝╚╝──╚═╝└─┘┴─┘└─┘ ┴ ┴└─┘┘└┘└─┘${cLOGO_04}   www.mgensolutions.kr ${cRST}"
     if [[ -n "$1" ]]; then echo -e; fi
 }
 
@@ -123,21 +121,20 @@ function __get_console_h() { # Get current console height
 }
 
 function __get_option_line_num() { # Get target options line number in this script file
+    E_SETOPTION=50
     # It only works argument count 1 ( target option key )
-    if [[ $# -eq 1 ]]; then
+    if [[ $# -eq 1 && -e "${SCRIPT_ABS_PATH}" ]]; then
         # Get target options line text
         local _target_opt=$(cat ${SCRIPT_ABS_PATH} | grep -na "^$1=")
-
         # If option search success ( grep result exists )
         if [[ -n "${_target_opt}" ]]; then
-            echo -e "${_target_opt}" | awk -F ':' '{print $1}'; return
+            echo -e "${_target_opt}" | awk -F ':' '{print $1}'
+            return 0
         else
-            # If get option failed, return 0
-            echo 0; return
+            return $E_SETOPTION
         fi
     fi
-    # If get option failed, return 0
-    echo 0; return
+    return $E_SETOPTION
 }
 
 function __set_option() { # Set option in this script
@@ -155,6 +152,7 @@ function __set_option() { # Set option in this script
 
     # Change Option
     sed -i "${_target_line}s/.*/$1=$2/g" ${SCRIPT_ABS_PATH}
+    source "${SCRIPT_ABS_PATH}" > /dev/null
 }
 
 function __is_run_target_process() { # Check target process is running
@@ -202,7 +200,6 @@ function __password_check() { # When initialize script & run command, check pass
         if [[ $? -eq 0 ]]; then
             # If check pass, save password this script
             __set_option USER_PW $_p_in
-            source ~/.bashrc > /dev/null
             return
         fi
     done
@@ -444,13 +441,18 @@ function __show_process_list() { # Show Filter Process list
     local _search_words=""
     local _ignore_words="-v -w"
 
-    # Add search words from 'PROCESS_SEARCH_LIST'
-    for eachWord in ${PROCESS_SEARCH_LIST[@]}; do
+    # Add search words from 'PROCESS_SEARCH_KEY_LIST'
+    for eachWord in ${PROCESS_SEARCH_KEY_LIST[@]}; do
+        _search_words="${_search_words} -e ${eachWord}"
+    done
+
+    # Add search words from 'PROCESS_SEARCH_EXT_LIST'
+    for eachWord in ${PROCESS_SEARCH_EXT_LIST[@]}; do
         _search_words="${_search_words} -e ${eachWord}"
     done
 
     # Add ignore words from 
-    for eachWord in ${PROCESS_IGRNOE_LIST[@]}; do
+    for eachWord in ${PROCESS_IGRNOE_KEY_LIST[@]}; do
         _ignore_words="${_ignore_words} -e ${eachWord}"
     done
 
@@ -499,7 +501,7 @@ function __install_mgen_script() { # install mgenScript files & extensions
     if [[ "${_check_recent}" == "${_updated_file}" ]]; then
         echo -e "${RUN} INSTALL => ${SCRIPT_ABS_PATH}"
         sudo cp -a "${_updated_file}" "${HOME}"
-        source ~/.bash_aliases > /dev/null
+        source ${SCRIPT_ABS_PATH} > /dev/null
     fi
 
     # CHECK :: .bash_completion
@@ -522,12 +524,10 @@ function __install_mgen_script() { # install mgenScript files & extensions
 
     # remember : passwd
     __set_option USER_PW "${_password}"
-    # apply : passwd
-    source ~/.bash_aliases > /dev/null
     # renewal : shell login prompt
     __simplify_shell_login
     # apply : update
-    source ~/.bashrc > /dev/null
+    source ${SCRIPT_ABS_PATH} > /dev/null
 }
 
 function __upload_script_to_git() { # upload git
@@ -629,7 +629,7 @@ function MGEN_show_current_status() { # [. | stat] Show current run docker conta
                 grep Up                     | \
                 sed  "s/^/\x1b[01;37m/g"    | \
                 sed  "s/$/\x1b[0m/g"        | \
-                sed  "s/   ${DEFAULT_DOCKER} / \x1b[32m>\x1b[01;37m ${DEFAULT_DOCKER} /g" | \
+                sed  "s/   ${DEFAULT_DOCKER} / \x1b[32m>\x1b[01;37m ${DEFAULT_DOCKER} /" | \
                 sed  "s/Up/\x1b[04;37mUp/g" | \
                 awk  '{printf "%s\n", $0}'
             # Non-Activated
@@ -637,7 +637,7 @@ function MGEN_show_current_status() { # [. | stat] Show current run docker conta
                 grep Exited              | \
                 sed  "s/^/\x1b[02;37m/g" | \
                 sed  "s/$/\x1b[0m/g"     | \
-                sed  "s/   ${DEFAULT_DOCKER} / \x1b[31m>\x1b[37;2m ${DEFAULT_DOCKER} /g" | \
+                sed  "s/   ${DEFAULT_DOCKER} / \x1b[31m>\x1b[37;2m ${DEFAULT_DOCKER} /" | \
                 awk  '{printf "%s\n", $0}'
         fi
     fi
@@ -662,11 +662,11 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
         local _full_log_list=()
 
         if [[ $(__show_process_list | sed 's/\x1B\[[0-9;]*m//g' | wc -l) -lt 2 ]]; then
+            __draw_line 
+            echo -e "${RUN} There are NO target programs"
             __draw_line
-            echo -e "${RUN} There are NO target programs active among ${cB_B}PROCESS_SEARCH_LIST${cRST}."
-            __draw_line
-            echo -en " ARGS | "
-            echo -e "${PROCESS_SEARCH_LIST[@]}" | awk '{for (i=1; i<=NF; i++) printf"<%s> ", $i; printf "\n"}'
+            echo -en " KEYS | "; echo -e "${PROCESS_SEARCH_KEY_LIST[@]}" | awk '{for (i=1; i<=NF; i++) printf"<%s> ", $i; printf "\n"}'
+            echo -en " EXTS | "; echo -e "${PROCESS_SEARCH_EXT_LIST[@]}" | awk '{for (i=1; i<=NF; i++) printf"<%s> ", $i; printf "\n"}'
             __draw_line
             return
         fi
