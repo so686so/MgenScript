@@ -13,7 +13,9 @@ cd $(dirname ${script_path})
 
 sudo cp -a "./Scripts/.bash_aliases" "${HOME}/"
 sudo cp -a "./Scripts/.bash_completion" "${HOME}/"
-source ${HOME}/.bashrc
+
+source ${HOME}/.bashrc > /dev/null
+source ${HOME}/.bash_aliases > /dev/null
 
 __simplify_shell_login
 
