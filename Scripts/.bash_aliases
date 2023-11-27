@@ -616,10 +616,9 @@ function MGEN_show_script_summary() { # Show Total Script Aliases
 }
 
 function MGEN_show_current_status() { # [. | stat] Show current run docker container / storage / process
-    __password_check # TODO => move total function preprocess
-    # clear console -> <TODO> it options?
-    echo ${USER_PW} | sudo -S clear
 
+    echo ${USER_PW} | sudo -S clear
+    
     __draw_line =
     __show_co_logo_colorful
 
@@ -643,17 +642,17 @@ function MGEN_show_current_status() { # [. | stat] Show current run docker conta
             # Activated Container
             echo -e "${_cmd_out}"           | \
                 grep Up                     | \
-                sed  "s/^/\x1b[01;37m/g"    | \
-                sed  "s/$/\x1b[0m/g"        | \
-                sed  "s/   ${DEFAULT_DOCKER} / \x1b[32m>\x1b[01;37m ${DEFAULT_DOCKER} /" | \
-                sed  "s/Up/\x1b[04;37mUp/g" | \
+                sed  "s/^/${cWHT}${cBLD}/g" | \
+                sed  "s/$/${cRST}/g"        | \
+                sed  "s/   ${DEFAULT_DOCKER} / ${cGRN}>${cWHT} ${DEFAULT_DOCKER} /" | \
+                sed  "s/Up/${cWHT}${cLNE}Up/g" | \
                 awk  '{printf "%s\n", $0}'
             # Non-Activated
-            echo -e "${_cmd_out}"        | \
-                grep Exited              | \
-                sed  "s/^/\x1b[02;37m/g" | \
-                sed  "s/$/\x1b[0m/g"     | \
-                sed  "s/   ${DEFAULT_DOCKER} / \x1b[31m>\x1b[37;2m ${DEFAULT_DOCKER} /" | \
+            echo -e "${_cmd_out}"           | \
+                grep Exited                 | \
+                sed  "s/^/${cWHT}${cDIM}/g" | \
+                sed  "s/$/${cRST}/g"        | \
+                sed  "s/   ${DEFAULT_DOCKER} / ${cRED}>${cWHT}${cDIM} ${DEFAULT_DOCKER} /" | \
                 awk  '{printf "%s\n", $0}'
         fi
     fi
