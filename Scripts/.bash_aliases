@@ -248,6 +248,10 @@ function __stop_stty() { # cursor blink off & disable echo
     stty -echo
 }
 
+function __remove_ascii_escape_words() { # remove for example, ${cRST}
+    sed 's/\x1[bB]\[[0-9;]*m//g' | sed "s/$ESC\[[0-9;]*m//g"
+}
+
 function __draw_line() { # draw seperator line
     local _line_word="-"
     local _line_expl=""
@@ -482,12 +486,10 @@ function __show_process_list() { # Show Filter Process list
 
     # Print Details
     if expr "$_cpu_core" + 0 > /dev/null; then
-        echo -e "${_output}" | \
-        sed 's/\x1[Bb]\[[0-9;]*m//g' | \
+        echo -e "${_output}" | __remove_ascii_escape_words | \
         awk -v SPLIT="$_cpu_core" 'NR > 1 {printf"   %-14s %-8.2f %-8.2f ", $2, $3 / SPLIT, $4; for (i=11; i<=NF; i++) printf "%s ", $i; printf "\n"}'
     else
-        echo -e "${_output}" | \
-        sed 's/\x1[Bb]\[[0-9;]*m//g' | \
+        echo -e "${_output}" | __remove_ascii_escape_words | \
         awk 'NR > 1 {printf"   %-14s %-8.2f %-8.2f ", $2, $3, $4; for (i=11; i<=NF; i++) printf "%s ", $i; printf "\n"}'
     fi
 }
@@ -663,7 +665,7 @@ function MGEN_show_current_status() { # [. | stat] Show current run docker conta
     echo -e "   ${_cmd_out}" | sort -rh -k3 | grep [0-9][GT] | grep -v "grep" | awk -F"#" '{print "   " $1}'
 
     __draw_line - PROCESS
-    __show_process_list | sed 's/\x1B\[[0-9;]*m//g'
+    __show_process_list
     __draw_line =
 }
 
@@ -676,7 +678,7 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
         local _processes_log_file_name="${SCRIPT_DIR_NAME}/.current_process_list_for_mgen_script.log"
         local _full_log_list=()
 
-        if [[ $(__show_process_list | sed 's/\x1B\[[0-9;]*m//g' | wc -l) -lt 2 ]]; then
+        if [[ $(__show_process_list | wc -l) -lt 2 ]]; then
             __draw_line 
             echo -e "${RUN} There are NO target programs"
             __draw_line
@@ -686,11 +688,10 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
             return
         fi
 
-        __show_process_list | awk 'NR > 1 {print $0}' > ${_processes_log_file_name}
+        __show_process_list | __remove_ascii_escape_words | awk 'NR > 1 {print $0}' > ${_processes_log_file_name}
         while IFS= read -r line; do
-            line=$(echo -e "${line}" | sed 's/\x1B\[[0-9;]*m//g')
             _full_log_list+=("$(echo -e "$line" | awk '{printf " %-8d :: ", $1; for (i=4; i<=NF; i++) printf "%s ", $i; printf "\n"}')")
-        done <  $_processes_log_file_name
+        done <  ${_processes_log_file_name}
         sudo rm ${_processes_log_file_name}
 
         echo -e; __draw_line SELECT_KILL_PROCESS
@@ -710,8 +711,8 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
         echo -en "${SET} Search Word : ${cYLW}${_find_str}${cRST}"
     fi
 
-    local _kill_targets=$(__show_process_list | sed 's/\x1B\[[0-9;]*m//g' | grep $_find_pid | awk '{print $1}' | sort -u)
-    local _kill_tgt_cnt=$(__show_process_list | sed 's/\x1B\[[0-9;]*m//g' | grep $_find_pid | awk '{print $1}' | sort -u | wc -l)
+    local _kill_targets=$(__show_process_list | __remove_ascii_escape_words | grep $_find_pid | awk '{print $1}' | sort -u)
+    local _kill_tgt_cnt=$(__show_process_list | __remove_ascii_escape_words | grep $_find_pid | awk '{print $1}' | sort -u | wc -l)
 
     if [[ $_kill_tgt_cnt -eq 0 ]]; then
         echo -e
@@ -722,7 +723,7 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
     # Show kill process candidates
     echo -e
     __draw_line - PROCESS_CANDIDATES
-    __show_process_list | sed 's/\x1B\[[0-9;]*m//g' | awk '{printf " %-8s :: ", $1; for (i=4; i<=NF; i++) printf "%s ", $i; printf "\n"}' | grep "$_find_pid"
+    __show_process_list | __remove_ascii_escape_words | awk '{printf " %-8s :: ", $1; for (i=4; i<=NF; i++) printf "%s ", $i; printf "\n"}' | grep "$_find_pid"
     # check delete process exactly
     __draw_line -
     echo -en ${SET} "If you don't want kill Process, ${cSKY}Ctrl+C${cRST}\n"
@@ -883,9 +884,8 @@ function MGEN_uni_check_program_memory() { # [mem] Check memory usage
     local _processes_log_file_name="${SCRIPT_DIR_NAME}/.current_process_list_for_mgen_script.log"
     local _full_log_list=()
 
-    __show_process_list | awk 'NR > 1 {print $0}' > ${_processes_log_file_name}
+    __show_process_list | __remove_ascii_escape_words | awk 'NR > 1 {print $0}' > ${_processes_log_file_name}
     while IFS= read -r line; do
-        line=$(echo -e "${line}" | sed 's/\x1B\[[0-9;]*m//g')
         _full_log_list+=("$(echo $line | awk '{printf " %-8s :: ", $1; for (i=4; i<=NF; i++) printf "%s ", $i; printf "\n"}')")
     done <  $_processes_log_file_name
     sudo rm $_processes_log_file_name
@@ -1155,6 +1155,6 @@ function _login_prompt() { #
     echo -e "   ${_cmd_out}" | sort -rh -k3 | grep [0-9][GT] | grep -v "grep" | head -1 | awk -F"#" '{print "   " $1}'
 
     __draw_line - PROCESS
-    __show_process_list | sed 's/\x1B\[[0-9;]*m//g'
+    __show_process_list
     __draw_line =
 }; _login_prompt
