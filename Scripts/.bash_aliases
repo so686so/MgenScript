@@ -32,8 +32,8 @@ SCRIPT_DIR_NAME=$( dirname  "${SCRIPT_ABS_PATH}" )
 # ----------------------------------------------------------------- #
 DEFAULT_DOCKER=raid
 # ----------------------------------------------------------------- #
-PROCESS_SEARCH_KEY_LIST=("mono" "UVES" "RAID" "glances" "nvtop" "PID")
-PROCESS_SEARCH_EXT_LIST=("\.sh$" "\.exe$" "\.py$")
+PROCESS_SEARCH_KEY_LIST=("mono" "UVES" "RAID" "glances" "nvtop" "PID" "node")
+PROCESS_SEARCH_EXT_LIST=("\.sh$" "\.exe$" "\.py$" "\.js$")
 PROCESS_IGRNOE_KEY_LIST=("grep" "vi" "vscode" "${SCRIPT_FILENAME}")
 # ----------------------------------------------------------------- #
 DRAW_LINE_MAX_LEN=100
@@ -873,7 +873,7 @@ function MGEN_get_camera_list() { # [cam] get camera list each service
         local _uri_line=`expr ${_each_cam} + 1`
         local _uri=$(awk "NR==${_uri_line}" ${_target_xml_path} | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
 
-        printf "| %-3s | %5s | %-30s\n" $_cam_count $_cam $_uri
+        printf "| %-3s | %5s | %-60s\n" $_cam_count $_cam $_uri
         _cam_count=`expr ${_cam_count} + 1`
     done
     __draw_line; echo
