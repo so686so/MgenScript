@@ -32,7 +32,8 @@ SCRIPT_DIR_NAME=$( dirname  "${SCRIPT_ABS_PATH}" )
 # ----------------------------------------------------------------- #
 DEFAULT_DOCKER=raid
 # ----------------------------------------------------------------- #
-PROCESS_SEARCH_KEY_LIST=("mono" "UVES" "RAID" "glances" "nvtop" "PID" "node")
+PROCESS_SEARCH_APP_LIST=("UVES" "RAID" "glances" "nvtop")
+PROCESS_SEARCH_KEY_LIST=("mono" "node" "PID")
 PROCESS_SEARCH_EXT_LIST=("\.sh$" "\.exe$" "\.py$" "\.js$")
 PROCESS_IGRNOE_KEY_LIST=("grep" "vi" "vscode" "${SCRIPT_FILENAME}")
 # ----------------------------------------------------------------- #
@@ -481,6 +482,11 @@ function __show_process_list() { # Show Filter Process list
     local _search_words=""
     local _ignore_words="-v -w"
 
+    # Add search words from 'PROCESS_SEARCH_APP_LIST'
+    for eachWord in ${PROCESS_SEARCH_APP_LIST[@]}; do
+        _search_words="${_search_words} -e ${eachWord}"
+    done
+
     # Add search words from 'PROCESS_SEARCH_KEY_LIST'
     for eachWord in ${PROCESS_SEARCH_KEY_LIST[@]}; do
         _search_words="${_search_words} -e ${eachWord}"
@@ -702,6 +708,7 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
             __draw_line 
             echo -e "${RUN} There are NO target programs"
             __draw_line
+            echo -en " APPS | "; echo -e "${PROCESS_SEARCH_APP_LIST[@]}" | awk '{for (i=1; i<=NF; i++) printf"<%s> ", $i; printf "\n"}'
             echo -en " KEYS | "; echo -e "${PROCESS_SEARCH_KEY_LIST[@]}" | awk '{for (i=1; i<=NF; i++) printf"<%s> ", $i; printf "\n"}'
             echo -en " EXTS | "; echo -e "${PROCESS_SEARCH_EXT_LIST[@]}" | awk '{for (i=1; i<=NF; i++) printf"<%s> ", $i; printf "\n"}'
             __draw_line
