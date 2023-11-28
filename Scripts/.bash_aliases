@@ -44,6 +44,15 @@ FZF_SETTINGS="--height 50% --reverse --cycle \
 USE_256_COLORS=Y
 # ----------------------------------------------------------------- #
 ESC=$'\033'
+# ----------------------------------------------------------------- #
+EVENT_KEYPUT=33
+EVENT_SIGINT=130
+# ----------------------------------------------------------------- #
+ERROR_SETOPT=50
+ERROR_PASSWD=51
+ERROR_GET_SU=52
+ERROR_INSTALL=53
+ERROR_NO_FZF=54
 # ================================================================= #
 
 
@@ -121,7 +130,6 @@ function __get_console_h() { # Get current console height
 }
 
 function __get_option_line_num() { # Get target options line number in this script file
-    E_SETOPTION=50
     # It only works argument count 1 ( target option key )
     if [[ $# -eq 1 && -e "${SCRIPT_ABS_PATH}" ]]; then
         # Get target options line text
@@ -131,10 +139,10 @@ function __get_option_line_num() { # Get target options line number in this scri
             echo -e "${_target_opt}" | awk -F ':' '{print $1}'
             return 0
         else
-            return $E_SETOPTION
+            return $ERROR_SETOPT
         fi
     fi
-    return $E_SETOPTION
+    return $ERROR_SETOPT
 }
 
 function __set_option() { # Set option in this script
@@ -179,15 +187,16 @@ function __password_check() { # When initialize script & run command, check pass
     # get saved pw value
     local _p_in=${USER_PW}
 
-    # Error return value
-    E_PASSWD_CHECK=12
     # Check Part
     if [[ -n $_p_in ]]; then
+        # use command require sudo
         echo "$_p_in" | sudo -S grep ${USER_ID} /etc/shadow > /dev/null 2>&1
-        if   [[ $? -eq 0 ]]; then
+        local _ret_val=$?
+        # is success?
+        if   [[ $_ret_val -eq 0 ]]; then
             return 0
-        elif [[ $? -gt 0 && "$1" = "CHECK_ONCE" ]]; then
-            return $E_PASSWD_CHECK
+        elif [[ $_ret_val -gt 0 && "$1" = "CHECK_ONCE" ]]; then
+            return $ERROR_PASSWD
         fi
     fi
 
@@ -210,21 +219,21 @@ function __password_check() { # When initialize script & run command, check pass
 }
 
 function __get_keystroke_direct() { # Get keystroke direct
-    E_KEY_INPUT=33
     # read keys each byte
-    read -s -n 1 _key_0 > /dev/null; if [[ "$_key_0" = $ESC ]]; then
-    read -s -n 1 _key_1 > /dev/null; if [[ "$_key_1" = "["  ]]; then
-    read -s -n 1 _key_2 > /dev/null; 
+    read -s -n 1        _key_0 > /dev/null; if [[ "$_key_0" = $ESC ]]; then
+    read -s -n 1 -t 0.1 _key_1 > /dev/null; if [[ "$_key_1" = "["  ]]; then
+    read -s -n 1 -t 0.1 _key_2 > /dev/null; 
 
     case "$_key_2" in
     A) echo "UP"    ;;
     B) echo "DOWN"  ;;
     C) echo "RIGHT" ;;
     D) echo "LEFT"  ;;
-    esac; 
+    *) echo "UNKN"  ;;
+    esac;
 
-    else echo -e "$_key_1"; return $E_KEY_INPUT; fi;
-    else echo -e "$_key_0"; return $E_KEY_INPUT; fi
+    else echo -e "$_key_1"; return $EVENT_KEYPUT; fi;
+    else echo -e "$_key_0"; return $EVENT_KEYPUT; fi
 }
 
 function __check_selected() { # Visualize selected menu
@@ -334,16 +343,14 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
         printf "$ESC[2K * Use ${cB_Y}Arrow key${cRST} to select and input '${cB_B}Enter${cRST}' to select, Cancel '${cB_R}Ctrl+C${cRST}'\n";
         __draw_line =
 
-        # set ErrorCode-SIGINT
-        E_SIGINT=130
-
         # Wait Key Input
         _key_inpt=$(__get_keystroke_direct);
+        local _ret_val=$?
 
         # Enter key input
-        if   [[ $? -eq $E_SIGINT ]]
-        then __restore_stty; return $E_SIGINT
-        elif [[ $? -eq $E_KEY_INPUT || $_key_inpt = "" ]]
+        if   [[ $_ret_val -eq $EVENT_SIGINT ]]
+        then __restore_stty; return $EVENT_SIGINT
+        elif [[ $_ret_val -eq $EVENT_KEYPUT ]]
         then break
         fi
         
@@ -373,16 +380,13 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
 }
 
 function __get_all_register_container_name() { # Get all container name
-    # Error return value
-    E_GET_SUDO_PASSWD=11
-
     # check saved password exists
     if [[ ! -n "${USER_PW}" ]]; then
-        echo -e " "; return $E_GET_SUDO_PASSWD
+        echo -e " "; return $ERROR_GET_SU
     fi
     # check password valid
     if ! __password_check "CHECK_ONCE"; then
-        echo -e " "; return $E_GET_SUDO_PASSWD
+        echo -e " "; return $ERROR_GET_SU
     fi
 
     echo ${USER_PW} | sudo -S true
@@ -434,9 +438,9 @@ function __select_docker_container() { # Select one of the currently created con
         local _ret_val=$?
 
         # check SIGINT
-        if [[ $_ret_val -eq $E_SIGINT ]]; then
+        if [[ $_ret_val -eq $EVENT_SIGINT ]]; then
             echo -e "${SET} You press '${cB_R}Ctrl+C${cRST}', script cancled."
-            return $E_SIGINT
+            return $EVENT_SIGINT
         fi
 
         # It returns 'container_name image_name status'
@@ -522,12 +526,9 @@ function __simplify_shell_login() { # hide shell login (motd)
 }
 
 function __install_mgen_script() { # install mgenScript files & extensions
-    # Error return value
-    E_MGEN_INSTALL=99
-
     if [[ ! -d "${SCRIPT_BASE_DIR}/Scripts" ]]; then
         echo -e "${ERR} Install failed => \"${cSKY}${SCRIPT_BASE_DIR}/Scripts${cRST}\" directory not exists"
-        return $E_MGEN_INSTALL
+        return $ERROR_INSTALL
     fi
 
     local _password=${USER_PW}
@@ -725,9 +726,9 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
         local _ret_val=$?
 
         # check SIGINT
-        if [[ $_ret_val -eq $E_SIGINT ]]; then
+        if [[ $_ret_val -eq $EVENT_SIGINT ]]; then
             echo -e "${SET} You press '${cB_R}Ctrl+C${cRST}', script cancled."
-            return $E_SIGINT
+            return $EVENT_SIGINT
         fi
         local _selected_process=$(echo ${_process_list[${_ret_val}]})
 
@@ -766,7 +767,7 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
 
 function MGEN_run_bash_target_container() { # [docker bash] Run /bin/bash target container
     __select_docker_container $1
-    if [[ $? -eq $E_SIGINT ]]; then 
+    if [[ $? -eq $EVENT_SIGINT ]]; then 
         return
     fi
     local _selected_container=${DEFAULT_DOCKER}
@@ -777,7 +778,7 @@ function MGEN_run_bash_target_container() { # [docker bash] Run /bin/bash target
 
 function MGEN_run_ssh_target_container() { # [docker ssh] Run ssh target container
     __select_docker_container $1
-    if [[ $? -eq $E_SIGINT ]]; then 
+    if [[ $? -eq $EVENT_SIGINT ]]; then 
         return
     fi
     local _selected_container=${DEFAULT_DOCKER}
@@ -867,9 +868,9 @@ function MGEN_get_camera_list() { # [cam] get camera list each service
         local _ret_val=$?
 
         # check SIGINT
-        if [[ $_ret_val -eq $E_SIGINT ]]; then
+        if [[ $_ret_val -eq $EVENT_SIGINT ]]; then
             echo -e "${SET} You press '${cB_R}Ctrl+C${cRST}', script cancled."
-            return $E_SIGINT
+            return $EVENT_SIGINT
         fi
 
         local _select_service=$(echo ${_service_list[${_ret_val}]})
@@ -895,9 +896,9 @@ function MGEN_get_camera_list() { # [cam] get camera list each service
             local _ret_val=$?
 
             # check SIGINT
-            if [[ $_ret_val -eq $E_SIGINT ]]; then
+            if [[ $_ret_val -eq $EVENT_SIGINT ]]; then
                 echo -e "${SET} You press '${cB_R}Ctrl+C${cRST}', script cancled."
-                return $E_SIGINT
+                return $EVENT_SIGINT
             fi
 
             _target_xml_path="${_BASE_XML_PATH}/${_config_list[${_ret_val}]}"
@@ -956,9 +957,9 @@ function MGEN_uni_check_program_memory() { # [mem] Check memory usage
     local _ret_val=$?
 
     # check SIGINT
-    if [[ $_ret_val -eq $E_SIGINT ]]; then
+    if [[ $_ret_val -eq $EVENT_SIGINT ]]; then
         echo -e "${SET} You press '${cB_R}Ctrl+C${cRST}', script cancled."
-        return $E_SIGINT
+        return $EVENT_SIGINT
     fi
     local _selected_process=$(echo ${_process_list[${_ret_val}]})
 
@@ -1073,11 +1074,9 @@ function MGEN_update_script() { # [update] Update MgenScript
 }
 
 function MGEN_cd_using_fzf() { # [cd] cd command with fuzzing find
-
-    E_FZF_NON_EXIST=41
     if [[ ! -e "/usr/bin/fzf_mgen" ]]; then
         echo -e "${ERR} you use 'mgen cd' but 'fzf_mgen' not exists"
-        return $E_FZF_NON_EXIST
+        return $ERROR_NO_FZF
     fi
 
     local _pre_dir=$(pwd)
