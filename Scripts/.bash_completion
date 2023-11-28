@@ -43,4 +43,5 @@ _mgen() {
     fi
 }
 complete -F _mgen mgen
+complete -F _mgen uni
 complete -F _mgen mg

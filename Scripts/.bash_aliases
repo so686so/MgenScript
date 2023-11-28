@@ -1174,13 +1174,22 @@ function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
     fi
 }
 alias mgen='MGEN_SCRIPT_TOOL'
+alias uni='MGEN_SCRIPT_TOOL'
 alias mg='MGEN_SCRIPT_TOOL'
 
 # ================================================================ #
 #                          Global Aliases                          #
 # ================================================================ #
 
-alias sc='f() { source ~/.bashrc > /dev/null; echo -e "${FIN} Source ~/.bashrc Complete "; }; f'
+alias sc='f() { 
+    source ~/.bashrc > /dev/null; echo -e "${FIN} Source ~/.bashrc Complete "; 
+    }; f'
+
+alias gl="gl() {
+        __draw_line;
+        sudo git log --color --pretty=format:'%<(2)%C(bold blue)[%>(16) %cr ]%C(reset) - %<(9)%s %C(bold green)/ %an %C(reset)'; 
+        __draw_line;
+    }; gl"
 
 # ================================================================ #
 #                               SET                                #
