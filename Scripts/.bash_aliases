@@ -223,8 +223,8 @@ function __get_keystroke_direct() { # Get keystroke direct
     D) echo "LEFT"  ;;
     esac; 
 
-    else return $E_KEY_INPUT; fi;
-    else return $E_KEY_INPUT; fi
+    else echo -e "$_key_1"; return $E_KEY_INPUT; fi;
+    else echo -e "$_key_0"; return $E_KEY_INPUT; fi
 }
 
 function __check_selected() { # Visualize selected menu
@@ -239,6 +239,8 @@ function __restore_stty() { # cursor blink on & activate echo
     printf "$ESC[?25h";
     # if input, print console
     stty echo
+    # comeback setting SIGINT
+    trap -- SIGINT
 }
 
 function __stop_stty() { # cursor blink off & disable echo
@@ -246,6 +248,8 @@ function __stop_stty() { # cursor blink off & disable echo
     printf "$ESC[?25l";
     # if input, print ignore
     stty -echo
+    # if SIGINT, restore stty settings
+    trap __restore_stty SIGINT
 }
 
 function __remove_ascii_escape_words() { # remove for example, ${cRST}
@@ -330,10 +334,17 @@ function __select_menu() { # select index given menu using '__get_keystroke_dire
         printf "$ESC[2K * Use ${cB_Y}Arrow key${cRST} to select and input '${cB_B}Enter${cRST}' to select, Cancel '${cB_R}Ctrl+C${cRST}'\n";
         __draw_line =
 
+        # set ErrorCode-SIGINT
+        E_SIGINT=130
+
         # Wait Key Input
         _key_inpt=$(__get_keystroke_direct);
-        if [[ $_key_inpt = "" ]]; then
-            break
+
+        # Enter key input
+        if   [[ $? -eq $E_SIGINT ]]
+        then __restore_stty; return $E_SIGINT
+        elif [[ $? -eq $E_KEY_INPUT || $_key_inpt = "" ]]
+        then break
         fi
         
         # Check input key
@@ -420,8 +431,16 @@ function __select_docker_container() { # Select one of the currently created con
 
         # select one container
         __select_menu "${_container_list[@]}" 
+        local _ret_val=$?
+
+        # check SIGINT
+        if [[ $_ret_val -eq $E_SIGINT ]]; then
+            echo -e "${SET} You press '${cB_R}Ctrl+C${cRST}', script cancled."
+            return $E_SIGINT
+        fi
+
         # It returns 'container_name image_name status'
-        _select_container=$(echo ${_container_list[$?]} | awk '{print $1}')
+        _select_container=$(echo ${_container_list[${_ret_val}]} | awk '{print $1}')
     fi
 
     local _is_start_container=$(sudo docker ps --format 'table {{.Names}}' | grep ^${_select_container}$)
@@ -703,7 +722,14 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
         done
 
         __select_menu "${_process_list[@]}"
-        local _selected_process=$(echo ${_process_list[$?]})
+        local _ret_val=$?
+
+        # check SIGINT
+        if [[ $_ret_val -eq $E_SIGINT ]]; then
+            echo -e "${SET} You press '${cB_R}Ctrl+C${cRST}', script cancled."
+            return $E_SIGINT
+        fi
+        local _selected_process=$(echo ${_process_list[${_ret_val}]})
 
         _find_pid=$(echo $_selected_process | awk -F"::" '{print $1}')
         _find_str=$(echo $_selected_process | awk -F"::" '{print "\b"$2}')
@@ -740,6 +766,9 @@ function MGEN_check_n_kill() { # [kill] Show current processes & kill target
 
 function MGEN_run_bash_target_container() { # [docker bash] Run /bin/bash target container
     __select_docker_container $1
+    if [[ $? -eq $E_SIGINT ]]; then 
+        return
+    fi
     local _selected_container=${DEFAULT_DOCKER}
 
     echo -e ${SET} "Try exec bash, Docker '${_selected_container}'"
@@ -748,6 +777,9 @@ function MGEN_run_bash_target_container() { # [docker bash] Run /bin/bash target
 
 function MGEN_run_ssh_target_container() { # [docker ssh] Run ssh target container
     __select_docker_container $1
+    if [[ $? -eq $E_SIGINT ]]; then 
+        return
+    fi
     local _selected_container=${DEFAULT_DOCKER}
 
     local _ssh_config_path="/etc/ssh/sshd_config"
@@ -830,8 +862,17 @@ function MGEN_get_camera_list() { # [cam] get camera list each service
         echo -e " * Select Target Service"
 
         local _service_list=( "Origin(UVES)" "Renewal(RAID)" "Others" )
+
         __select_menu "${_service_list[@]}"
-        local _select_service=$(echo ${_service_list[$?]})
+        local _ret_val=$?
+
+        # check SIGINT
+        if [[ $_ret_val -eq $E_SIGINT ]]; then
+            echo -e "${SET} You press '${cB_R}Ctrl+C${cRST}', script cancled."
+            return $E_SIGINT
+        fi
+
+        local _select_service=$(echo ${_service_list[${_ret_val}]})
 
         if   [[ "${_select_service}" == "Origin(UVES)" ]]; then
             _target_xml_path="${_UVES_XML_PATH}"
@@ -849,8 +890,17 @@ function MGEN_get_camera_list() { # [cam] get camera list each service
 
             __draw_line =
             echo -e "${SET} Search Path : ${_BASE_XML_PATH}"
+            
             __select_menu "${_config_list[@]}"
-            _target_xml_path="${_BASE_XML_PATH}/${_config_list[$?]}"
+            local _ret_val=$?
+
+            # check SIGINT
+            if [[ $_ret_val -eq $E_SIGINT ]]; then
+                echo -e "${SET} You press '${cB_R}Ctrl+C${cRST}', script cancled."
+                return $E_SIGINT
+            fi
+
+            _target_xml_path="${_BASE_XML_PATH}/${_config_list[${_ret_val}]}"
         fi
     fi
 
@@ -903,7 +953,14 @@ function MGEN_uni_check_program_memory() { # [mem] Check memory usage
     done
 
     __select_menu "${_process_list[@]}"
-    local _selected_process=$(echo ${_process_list[$?]})
+    local _ret_val=$?
+
+    # check SIGINT
+    if [[ $_ret_val -eq $E_SIGINT ]]; then
+        echo -e "${SET} You press '${cB_R}Ctrl+C${cRST}', script cancled."
+        return $E_SIGINT
+    fi
+    local _selected_process=$(echo ${_process_list[${_ret_val}]})
 
     # Get PID selected process
     _find_pid="$(echo -en "$_selected_process" | awk -F"::" '{print $1}' | awk -F' ' '{print $1}')"
@@ -1017,51 +1074,38 @@ function MGEN_update_script() { # [update] Update MgenScript
 
 function MGEN_cd_using_fzf() { # [cd] cd command with fuzzing find
 
+    E_FZF_NON_EXIST=41
     if [[ ! -e "/usr/bin/fzf_mgen" ]]; then
         echo -e "${ERR} you use 'mgen cd' but 'fzf_mgen' not exists"
-        return 1
+        return $E_FZF_NON_EXIST
     fi
 
     local _pre_dir=$(pwd)
     local _mov_dir=
-    case $1 in
-        HOME)
-            _mov_dir="${HOME}"
-            ;;
 
-        CURR)
-            _mov_dir="${_pre_dir}"
-            ;;
+    # Set search start directory
+    if   [[ "$1" = "." ]];          then _mov_dir="${_pre_dir}"
+    elif [[ -e "$1" ]];             then _mov_dir="$1"
+    elif [[ -e "${_pre_dir}/$1" ]]; then _mov_dir="${_pre_dir}/$1"
+    else                                 _mov_dir="${HOME}"
+    fi
 
-        ROOT)
-            _mov_dir="/"
-            ;;
-
-        *)
-            if [[ -e "$1" ]]
-            then
-                _mov_dir="$1"
-            elif [[ -e "${_pre_dir}/$1" ]]
-            then
-                _mov_dir="${_pre_dir}/$1"
-            else
-                _mov_dir="${HOME}"
-            fi
-            ;;
-    esac
-
+    # check target is directory
     if [[ ! -d $_mov_dir ]]; then
         _mov_dir=$(dirname ${_move_dir})
     fi
+
+    # check permission change directory
     cd ${_mov_dir}
     if [[ $? -gt 0 ]]; then
         echo -e "${ERR} Change Directory to ${cYLW}${_mov_dir}${cRST} Failed..."
         cd ${_pre_dir}
         return
     fi
-
     echo -e "${SET} Search Start Point : ${cSKY}${_mov_dir}${cRST}"
 
+    # Ignore SIGINT(ctrl + c)
+    trap "" SIGINT
     local _select_file=$( fzf_mgen ${FZF_SETTINGS} \
                           --preview 'if file -b {} | grep -q text; then cat {}; else echo "Not a text file"; fi' \
                           --header "[ Preview Scroll Down : ctrl + space ]" )
@@ -1071,6 +1115,8 @@ function MGEN_cd_using_fzf() { # [cd] cd command with fuzzing find
     else
         cd ${_pre_dir}
     fi
+    # Restore SIGINT(ctrl + c)
+    trap -- SIGINT
 }
 
 function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
@@ -1122,17 +1168,7 @@ function MGEN_SCRIPT_TOOL() { # MgenSolutions Script Tool Management Function
                 ;;
 
             cd)
-                if   [[ "$2" == "." ]]
-                then MGEN_cd_using_fzf "CURR"
-
-                elif [[ "$2" == "/" ]]
-                then MGEN_cd_using_fzf "ROOT"
-
-                elif [[ "$2" == "~" ]]
-                then MGEN_cd_using_fzf "HOME"
-
-                else MGEN_cd_using_fzf $2
-                fi
+                MGEN_cd_using_fzf $2
                 ;;
         esac
     fi
@@ -1150,7 +1186,6 @@ alias sc='f() { source ~/.bashrc > /dev/null; echo -e "${FIN} Source ~/.bashrc C
 #                               SET                                #
 # ================================================================ #
 stty -ixon # Prevent Screen Pause by 'Ctrl + S'
-trap __restore_stty SIGINT
 
 function _login_prompt() { #
     __draw_line = MAIN_STORAGE
