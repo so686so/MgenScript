@@ -856,7 +856,7 @@ function MGEN_run_ssh_target_container() { # [docker ssh] Run ssh target contain
 function MGEN_get_camera_list() { # [cam] get camera list each service
     local _BASE_XML_PATH="${HOME}/monitoring/setup/cameraConfig"
     local _UVES_XML_PATH="${_BASE_XML_PATH}/config555.xml"
-    local _RAID_XML_PATH="${_BASE_XML_PATH}/RAID_CAM.xml"
+    local _RAID_XML_PATH="${HOME}/compose_raid/setting/cam_list.xml"
 
     local _target_xml_path=
     # Check whether any of the target services are currently running
