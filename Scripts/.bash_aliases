@@ -35,7 +35,7 @@ DEFAULT_DOCKER=raid
 PROCESS_SEARCH_APP_LIST=("UVES" "RAID" "glances" "nvtop")
 PROCESS_SEARCH_KEY_LIST=("mono" "node" "PID")
 PROCESS_SEARCH_EXT_LIST=("\.sh$" "\.exe$" "\.py$" "\.js$")
-PROCESS_IGRNOE_KEY_LIST=("grep" "vi" "vscode" "${SCRIPT_FILENAME}")
+PROCESS_IGRNOE_KEY_LIST=("grep" "vi" "vscode" "${SCRIPT_FILENAME}" "rabbitmq" "mysqld")
 # ----------------------------------------------------------------- #
 DRAW_LINE_MAX_LEN=100
 # ----------------------------------------------------------------- #
@@ -506,7 +506,7 @@ function __show_process_list() { # Show Filter Process list
     local _cpu_core=$(cat /proc/cpuinfo | grep -c processor 2>/dev/null)
 
     # Get processes
-    local _output=$(ps au | grep ${_search_words} | grep ${_ignore_words})
+    local _output=$(ps -aux | grep ${_search_words} | grep ${_ignore_words})
 
     # Print Title
     echo -en "${cB_B}"
